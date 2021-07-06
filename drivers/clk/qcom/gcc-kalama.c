@@ -3930,6 +3930,7 @@ static struct platform_driver gcc_kalama_driver = {
 		.name = "gcc-kalama",
 		.of_match_table = gcc_kalama_match_table,
 		.sync_state = gcc_kalama_sync_state,
+		.probe_type = PROBE_FORCE_SYNCHRONOUS,
 	},
 };
 
