@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2199
+# shellcheck source=/dev/null
+
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2022 Utsav Balar
+
+# Currently set tip to the current kernel directory
+KERNEL_TOP=$(pwd)
+KERNEL_CFG=arch/arm64/configs/vendor/samsung
+OUT_DIR=$KERNEL_TOP/temp
+export KERNEL_TOP
+export KERNEL_CFG
+export OUT_DIR
+
+# Set compiler PATH
+PATH=${HOME}/android/lineage/prebuilts/clang/host/linux-x86/clang-r487747c/bin:$PATH
+
+BUILD="make O=$OUT_DIR \
+ARCH=arm64 \
+LLVM=1 \
+CLANG_TRIPLE=aarch64-linux-gnu- \
+CROSS_COMPILE=aarch64-linux-gnu- \
+-j$(nproc --all)
+"
+export BUILD
+
+cd "$KERNEL_TOP" || exit
+
+# These values must be changed for forks!
+KERNEL_DEFCONFIG_URL="https://github.com/chaptsand/android_kernel_samsung_sm8550"
+KERNEL_DEFCONFIG_HEAD=$(git -C ${KERNEL_CFG} rev-parse HEAD)
+
+SOC="kalama"
+if [ -n  "$*" ]; then
+  case "$1" in
+    dm1q)
+      DEVICE=$1;
+    ;;
+    dm2q)
+      DEVICE=$1;
+    ;;
+    dm3q)
+      DEVICE=$1;
+    ;;
+    q5q)
+      DEVICE=$1;
+    ;;
+    b5q)
+      DEVICE=$1;
+    ;;
+    v5q)
+      DEVICE=$1;
+    ;;
+    e5q)
+      DEVICE=$1;
+    ;;
+    gts9)
+      DEVICE=$1;
+    ;;
+    gts9p)
+      DEVICE=$1;
+    ;;
+    gts9u)
+      DEVICE=$1;
+    ;;
+    gts9wifi)
+      DEVICE=$1;
+    ;;
+    gts9pwifi)
+      DEVICE=$1;
+    ;;
+    gts9uwifi)
+      DEVICE=$1;
+    ;;
+  esac
+
+  echo "================================================="
+  echo "Your Environment:"
+  echo "KERNEL_TOP  : ${KERNEL_TOP}"
+  echo "KERNEL_CFG  : ${KERNEL_CFG}"
+  echo "OUT_DIR  : ${OUT_DIR}"
+  ret=$(rm -rf "${OUT_DIR}" 2>&1);
+  ret=$(mkdir -p "${OUT_DIR}" 2>&1);
+  if [ ! -d "${OUT_DIR}" ] ; then
+    echo "Check your environment";
+    echo "ERROR: ${ret}";
+    exit 1;
+  fi
+
+  echo "================================================="
+  echo "SOC -> ${SOC} :: Device -> $1"
+  echo "Running scripts/kconfig/merge_config.sh ..."
+  ret=$(ARCH=arm64 LLVM=1 scripts/kconfig/merge_config.sh \
+    -O "${OUT_DIR}" \
+    ${KERNEL_CFG}/../../gki_defconfig \
+    ${KERNEL_CFG}/../${SOC}_GKI.config \
+    ${KERNEL_CFG}/../debugfs.config \
+    ${KERNEL_CFG}/${SOC}_GKI_sec.config \
+  ${KERNEL_CFG}/"${DEVICE}".config);
+
+  case "$ret" in
+    *"error"*|*"ERROR"*|*"Exit"*) echo "ERROR: $ret"; exit 1;;
+  esac
+  echo "Building new defconfig ..."
+  ret=$(${BUILD} savedefconfig 2>&1);
+  case "$ret" in
+    *"error"*|*"ERROR"*) echo "ERROR: $ret"; exit 1;;
+  esac
+  mv "$OUT_DIR"/defconfig ./arch/arm64/configs/"$1"_defconfig
+
+read -r -d '' KERNEL_COMMIT_MESSAGE << EOM
+ARM64: configs: ${DEVICE}: update auto-generated defconfig for ${DEVICE}
+This update is generated automatically by using the update_defconfig script
+HEAD of the project used to prepare this commit:
+${KERNEL_DEFCONFIG_URL}/tree/${KERNEL_DEFCONFIG_HEAD}
+EOM
+
+else
+
+read -r -d '' KERNEL_COMMIT_MESSAGE << EOM
+ARM64: configs: samsung: update auto-generated defconfig for all devices
+This update is generated automatically by using the update_defconfig script
+HEAD of the project used to prepare this commit:
+${KERNEL_DEFCONFIG_URL}/tree/${KERNEL_DEFCONFIG_HEAD}
+EOM
+
+  DEVICES="dm1q dm2q dm3q q5q b5q v5q e5q gts9 gts9p gts9u gts9wifi gts9pwifi gts9pwifi"
+
+  for device in $DEVICES; do \
+
+    case $device in
+      dm1q)
+        DEVICE=$device;
+      ;;
+      dm2q)
+        DEVICE=$device;
+      ;;
+      dm3q)
+        DEVICE=$device;
+      ;;
+      q5q)
+        DEVICE=$device;
+      ;;
+      b5q)
+        DEVICE=$device;
+      ;;
+      v5q)
+        DEVICE=$device;
+      ;;
+      e5q)
+        DEVICE=$device;
+      ;;
+      gts9)
+        DEVICE=$device;
+      ;;
+      gts9p)
+        DEVICE=$device;
+      ;;
+      gts9u)
+        DEVICE=$device;
+      ;;
+      gts9wifi)
+        DEVICE=$device;
+      ;;
+      gts9pwifi)
+        DEVICE=$device;
+      ;;
+      gts9uwifi)
+        DEVICE=$device;
+      ;;
+    esac
+
+    echo "================================================="
+    echo "Your Environment:"
+    echo "KERNEL_TOP  : ${KERNEL_TOP}"
+    echo "KERNEL_CFG  : ${KERNEL_CFG}"
+    echo "OUT_DIR  : ${OUT_DIR}"
+      ret=$(rm -rf "${OUT_DIR}" 2>&1);
+      ret=$(mkdir -p "${OUT_DIR}" 2>&1);
+      if [ ! -d "${OUT_DIR}" ] ; then
+        echo "Check your environment";
+        echo "ERROR: ${ret}";
+        exit 1;
+      fi
+
+      echo "================================================="
+      echo "SOC -> ${SOC} :: Device -> $device"
+      echo "Running scripts/kconfig/merge_config.sh ..."
+      ret=$(ARCH=arm64 LLVM=1 scripts/kconfig/merge_config.sh \
+        -O "${OUT_DIR}" \
+        ${KERNEL_CFG}/../../gki_defconfig \
+        ${KERNEL_CFG}/../${SOC}_GKI.config \
+        ${KERNEL_CFG}/../debugfs.config \
+        ${KERNEL_CFG}/${SOC}_GKI_sec.config \
+      ${KERNEL_CFG}/"${DEVICE}".config);
+
+      case "$ret" in
+        *"error"*|*"ERROR"*|*"Exit"*) echo "ERROR: $ret"; exit 1;;
+      esac
+      echo "Building new defconfig ..."
+      ret=$(${BUILD} savedefconfig 2>&1);
+      case "$ret" in
+        *"error"*|*"ERROR"*) echo "ERROR: $ret"; exit 1;;
+      esac
+      mv "$OUT_DIR"/defconfig ./arch/arm64/configs/"$device"_defconfig
+  done
+fi
+
+echo "================================================="
+echo "Done!"
+rm -rf "$OUT_DIR"
+
+echo "You can now commit the updated defconfig with the following as the commit message:"
+echo "${KERNEL_COMMIT_MESSAGE}"
+
+unset KERNEL_TOP
+unset KERNEL_CFG
+unset OUT_DIR
+unset BUILD
