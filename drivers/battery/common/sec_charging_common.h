@@ -380,6 +380,14 @@ enum d2d_auth_type {
 	D2D_AUTH_SNK,
 };
 
+enum mfc_phm_state {
+	NONE_PHM = 0,
+	EXIT_PHM,
+	ENTER_PHM,
+	FAILED_PHM,
+	END_PHM,
+};
+
 enum d2d_mode {
 	HP_D2D_NONE = 0,
 	HP_D2D_ON,
