@@ -20,8 +20,8 @@
 
 
 #include "wacom_reg.h"
-#include "../sec_input/sec_input.h"
-#include "../sec_input/sec_tsp_log.h"
+#include "../sec_input_q5q/sec_input.h"
+#include "../sec_input_q5q/sec_tsp_log.h"
 
 #undef CONFIG_USB_TYPEC_MANAGER_NOTIFIER
 #if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER)
