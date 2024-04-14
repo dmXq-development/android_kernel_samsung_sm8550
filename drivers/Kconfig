@@ -287,6 +287,8 @@ source "drivers/fingerprint/Kconfig"
 
 source "drivers/firmware/cirrus/Kconfig"
 
+source "drivers/firmware/cirrus_mainline/Kconfig"
+
 source "drivers/input/input_boost/Kconfig"
 
 source "drivers/usb/typec/common/Kconfig"

@@ -215,7 +215,11 @@ else
 obj-y				+= input/sec_input/
 endif
 obj-y				+= fingerprint/
+ifeq ($(CONFIG_SEC_PLATFORM_Q5Q), y)
+obj-y				+= firmware/cirrus_mainline/
+else
 obj-y				+= firmware/cirrus/
+endif
 obj-y				+= input/input_boost/
 obj-y				+= usb/typec/common/
 obj-y				+= battery/charger/pca9468_charger/
