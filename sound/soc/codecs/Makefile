@@ -674,6 +674,10 @@ obj-$(CONFIG_SND_SOC_TAS5805M) += snd-soc-tas5805m.o
 # Mux
 obj-$(CONFIG_SND_SOC_SIMPLE_MUX)	+= snd-soc-simple-mux.o
 
-
+ifeq ($(CONFIG_SEC_PLATFORM_Q5Q), y)
+snd-soc-cs40l26-objs := cs40l26-a2h_mainline.o
+else
 snd-soc-cs40l26-objs := cs40l26-a2h.o
+endif
+
 obj-$(CONFIG_SND_SOC_CS40L26)	+= snd-soc-cs40l26.o
