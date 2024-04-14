@@ -12,7 +12,7 @@
 // published by the Free Software Foundation.
 
 #ifdef CONFIG_CS40L26_SAMSUNG_FEATURE
-#include <linux/vibrator/cs40l26.h>
+#include <linux/vibrator/cs40l26_mainline.h>
 #if IS_ENABLED(CONFIG_SEC_ABC)
 #include <linux/sti/abc_common.h>
 #endif
@@ -769,7 +769,6 @@ static int cs40l26_handle_mbox_buffer(struct cs40l26_private *cs40l26)
 {
 	struct device *dev = cs40l26->dev;
 	u32 val = 0;
-	int ret;
 
 	while (!cs40l26_mbox_buffer_read(cs40l26, &val)) {
 		if ((val & CS40L26_DSP_MBOX_CMD_INDEX_MASK)

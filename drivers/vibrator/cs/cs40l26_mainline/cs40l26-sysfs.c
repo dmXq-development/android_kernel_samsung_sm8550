@@ -12,7 +12,7 @@
 // published by the Free Software Foundation.
 
 #ifdef CONFIG_CS40L26_SAMSUNG_FEATURE
-#include <linux/vibrator/cs40l26.h>
+#include <linux/vibrator/cs40l26_mainline.h>
 #else
 #include <linux/mfd/cs40l26.h>
 #endif
