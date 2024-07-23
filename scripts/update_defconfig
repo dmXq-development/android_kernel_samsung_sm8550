@@ -64,9 +64,8 @@ run_merge_config() {
 		-O "${out_dir}" \
 		"${krnl_config_dir}/../../gki_defconfig" \
 		"${krnl_config_dir}/../${soc}_GKI.config" \
-		"${krnl_config_dir}/../debugfs.config" \
 		"${krnl_config_dir}/${soc}_GKI_sec.config" \
-		"${krnl_config_dir}/${soc}_GKI_sec_userdebug.config" \
+		"${krnl_config_dir}/../debugfs.config" \
 		"${krnl_config_dir}/${device}.config")
 
 	case "$ret" in
