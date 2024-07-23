@@ -12,10 +12,10 @@ export krnl_top
 export krnl_config_dir
 
 # Set compiler PATH
-if [[ -d $HOME/clang/bin ]]; then
-	PATH=$HOME/clang/bin:$PATH
+if [[ -d ${krnl_top}/../../../prebuilts/clang/host/linux-x86/clang-r487747c/bin ]]; then
+	PATH=${krnl_top}/../../../prebuilts/clang/host/linux-x86/clang-r487747c/bin:$PATH
 	use_llvm=1
-	echo "Using Clang from $HOME/clang/bin"
+	echo "Using Clang from Android Clang/LLVM Prebuilts"
 elif command -v clang >/dev/null 2>&1; then
 	use_llvm=1
 	echo "Using Clang from $(command -v clang)"
