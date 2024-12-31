@@ -217,6 +217,7 @@ obj-y				+= fingerprint/
 obj-y				+= firmware/cirrus/
 obj-y				+= input/input_boost/
 obj-y				+= usb/typec/common/
+obj-y				+= battery/charger/pca9468_charger/
 obj-y				+= battery/charger/pca9481_charger/
 obj-y				+= vibrator/cs/cs40l26/
 obj-y				+= input/misc/hall/
