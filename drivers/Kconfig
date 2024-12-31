@@ -257,6 +257,8 @@ source "drivers/uwb/uwb_logger/Kconfig"
 
 source "drivers/sec_panel_notifier/Kconfig"
 
+source "drivers/sec_panel_notifier_v2/Kconfig"
+
 source "drivers/usb/common/vbus_notifier/Kconfig"
 
 source "drivers/battery/charger/max77705_charger/Kconfig"

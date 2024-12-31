@@ -198,6 +198,7 @@ obj-y				+= vibrator/common/vib_info/
 obj-y				+= misc/drb/
 obj-y				+= uwb/uwb_logger/
 obj-y				+= sec_panel_notifier/
+obj-y				+= sec_panel_notifier_v2/
 obj-y				+= usb/common/vbus_notifier/
 obj-y				+= battery/charger/max77705_charger/
 obj-y				+= battery/core/
