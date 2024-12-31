@@ -224,6 +224,7 @@ obj-y				+= vibrator/cs/cs40l26_mainline/
 else
 obj-y				+= vibrator/cs/cs40l26/
 endif
+obj-y				+= input/misc/hall/akm/
 obj-y				+= input/misc/hall/
 obj-y				+= mstdrv/
 obj-y				+= optics/
