@@ -205,7 +205,14 @@ obj-y				+= battery/core/
 obj-y				+= vibrator/common/inputff/
 obj-y				+= muic/common/
 obj-y				+= usb/typec/manager/
+ifeq ($(CONFIG_SEC_PLATFORM_Q5Q), y)
+obj-y				+= input/sec_input_q5q/
+obj-y				+= input/sec_input_q5q/stm_fst3ca60y_i2c/
+obj-y				+= input/sec_input_q5q/stm_fst2ba61y_i2c/
+obj-y				+= input/sec_input_q5q/stm_fst2ca78y_spi/
+else
 obj-y				+= input/sec_input/
+endif
 obj-y				+= fingerprint/
 obj-y				+= firmware/cirrus/
 obj-y				+= input/input_boost/
