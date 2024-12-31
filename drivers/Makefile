@@ -219,7 +219,11 @@ obj-y				+= input/input_boost/
 obj-y				+= usb/typec/common/
 obj-y				+= battery/charger/pca9468_charger/
 obj-y				+= battery/charger/pca9481_charger/
+ifeq ($(CONFIG_SEC_PLATFORM_Q5Q), y)
+obj-y				+= vibrator/cs/cs40l26_mainline/
+else
 obj-y				+= vibrator/cs/cs40l26/
+endif
 obj-y				+= input/misc/hall/
 obj-y				+= mstdrv/
 obj-y				+= optics/
