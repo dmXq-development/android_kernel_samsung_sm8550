@@ -230,6 +230,7 @@ obj-y				+= mstdrv/
 obj-y				+= optics/
 obj-y				+= battery/fuelgauge/max77705_fuelgauge/
 obj-y				+= mfd/maxim/
+obj-y				+= mfd/maxim/max17333/
 obj-y				+= regulator/s2mpb03/
 obj-y				+= battery/common/
 obj-y				+= nfc/snvm/

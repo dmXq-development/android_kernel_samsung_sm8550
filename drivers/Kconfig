@@ -309,6 +309,8 @@ source "drivers/battery/fuelgauge/max77705_fuelgauge/Kconfig"
 
 source "drivers/mfd/maxim/Kconfig"
 
+source "drivers/mfd/maxim/max17333/Kconfig"
+
 source "drivers/regulator/s2mpb03/Kconfig"
 
 source "drivers/battery/common/Kconfig"
