@@ -321,6 +321,8 @@ source "drivers/regulator/s2dos05/Kconfig"
 
 source "drivers/input/wacom/Kconfig"
 
+source "drivers/input/wacom_wez01/Kconfig"
+
 source "drivers/usb/typec/maxim/Kconfig"
 
 source "drivers/regulator/s2mpb02/Kconfig"

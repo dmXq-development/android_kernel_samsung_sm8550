@@ -235,7 +235,11 @@ obj-y				+= regulator/s2mpb03/
 obj-y				+= battery/common/
 obj-y				+= nfc/snvm/
 obj-y				+= regulator/s2dos05/
+ifeq ($(CONFIG_SEC_PLATFORM_Q5Q), y)
+obj-y				+= input/wacom_wez01/
+else
 obj-y				+= input/wacom/
+endif
 obj-y				+= usb/typec/maxim/
 obj-y				+= regulator/s2mpb02/
 ifneq ($(CONFIG_SEC_PLATFORM_DM1Q), y)
