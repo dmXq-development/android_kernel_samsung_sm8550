@@ -36,9 +36,17 @@
 
 #include <linux/muic/common/muic.h>
 #if defined(CONFIG_MAX77705_FW_SEPARATION_PID_BY_MODEL)
+#if IS_ENABLED(CONFIG_SEC_PLATFORM_Q5Q)
+#include <linux/mfd/firmware/max77705C_pass2_specific_q5q.h>
+#else
 #include <linux/mfd/firmware/max77705C_pass2_specific.h>
+#endif
 #if defined(CONFIG_MAX77705_USE_EXTRA_FW)
+#if IS_ENABLED(CONFIG_SEC_PLATFORM_Q5Q)
+#include <linux/mfd/firmware/max77705C_pass2_extra1_q5q.h>
+#else
 #include <linux/mfd/firmware/max77705C_pass2_extra1.h>
+#endif
 #endif
 #else
 #if defined(CONFIG_MAX77705_FW_PID03_SUPPORT)
