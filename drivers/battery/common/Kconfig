@@ -354,3 +354,8 @@ config BATTERY_SAMSUNG_REBOOT
 	 If this is Y, checking reboot when power off.
 
 endmenu
+
+config DUAL_BATTERY
+    tristate "support for dual battery model"
+    help
+	  Say Y here to enable support for dual battery

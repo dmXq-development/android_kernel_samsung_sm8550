@@ -34,3 +34,11 @@ ifeq ($(CONFIG_UML), y)
 endif
 endif
 ccflags-y := -Wformat
+
+obj-$(CONFIG_DUAL_BATTERY)              += sec-dual-battery.o
+sec-dual-battery-$(CONFIG_DUAL_BATTERY) += sec_dual_battery.o
+
+ifeq ($(CONFIG_SEC_KUNIT), y)
+ GCOV_PROFILE_sec_dual_battery.o := $(CONFIG_SEC_KUNIT)
+endif
+ccflags-y := -Wformat
