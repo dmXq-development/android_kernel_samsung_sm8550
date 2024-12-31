@@ -9,6 +9,12 @@ config SAMSUNG_UWB
 	  To compile this support as a module, choose M here: the module will
 	  be called uwb.
 
+config UWB_SR100
+        bool "Nxp SPI driver for SR100 devices"
+        default n
+        help
+          NXP SR100 UWB controller support.
+
 config UWB_SR200
 	bool "Nxp SPI driver for SR200 devices"
 	default n
