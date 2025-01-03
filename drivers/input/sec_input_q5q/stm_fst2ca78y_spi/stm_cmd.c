@@ -826,22 +826,22 @@ void stm_ts_print_frame(struct stm_ts_data *ts, short *min, short *max)
 	if (pStr == NULL)
 		return;
 
-	snprintf(pTmp, 4, "    ");
+	snprintf(pTmp, sizeof(pTmp), "    ");
 	strlcat(pStr, pTmp, lsize);
 
 	for (i = 0; i < ts->rx_count; i++) {
-		snprintf(pTmp, 6, "Rx%02d  ", i);
+		snprintf(pTmp, sizeof(pTmp), "Rx%02d  ", i);
 		strlcat(pStr, pTmp, lsize);
 	}
 
 	input_raw_info_d(GET_DEV_COUNT(ts->multi_dev), &ts->client->dev, "%s\n", pStr);
 
 	memset(pStr, 0x0, 6 * (ts->rx_count + 1));
-	snprintf(pTmp, 2, " +");
+	snprintf(pTmp, sizeof(pTmp), " +");
 	strlcat(pStr, pTmp, lsize);
 
 	for (i = 0; i < ts->rx_count; i++) {
-		snprintf(pTmp, 6, "------");
+		snprintf(pTmp, sizeof(pTmp), "------");
 		strlcat(pStr, pTmp, lsize);
 	}
 
@@ -849,11 +849,11 @@ void stm_ts_print_frame(struct stm_ts_data *ts, short *min, short *max)
 
 	for (i = 0; i < ts->tx_count; i++) {
 		memset(pStr, 0x0, 6 * (ts->rx_count + 1));
-		snprintf(pTmp, 7, "Tx%02d | ", i);
+		snprintf(pTmp, sizeof(pTmp), "Tx%02d | ", i);
 		strlcat(pStr, pTmp, lsize);
 
 		for (j = 0; j < ts->rx_count; j++) {
-			snprintf(pTmp, 6, "%5d ", ts->pFrame[(i * ts->rx_count) + j]);
+			snprintf(pTmp, sizeof(pTmp), "%5d ", ts->pFrame[(i * ts->rx_count) + j]);
 			strlcat(pStr, pTmp, lsize);
 
 			if (ts->pFrame[(i * ts->rx_count) + j] < *min)
