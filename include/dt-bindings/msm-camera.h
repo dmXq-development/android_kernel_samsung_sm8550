@@ -1,0 +1,1 @@
+../../../sm8550-modules/qcom/opensource/camera-kernel/dt-bindings/msm-camera.h
