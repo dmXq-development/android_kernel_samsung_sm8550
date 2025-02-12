@@ -601,6 +601,16 @@ config TASKSTATS
 
 	  Say N if unsure.
 
+config MSM_SYSSTATS
+	tristate "Export system/task statistics through netlink"
+	depends on NET
+	depends on MULTIUSER
+	help
+	  Export system and task statistics through generic netlink
+	  interface. Userspace can retrieve these statistics via netlink
+	  socket.
+	  If unsure, say N
+
 config TASK_DELAY_ACCT
 	bool "Enable per-task delay accounting"
 	depends on TASKSTATS
@@ -955,6 +965,11 @@ config MEMCG
 config MEMCG_SWAP
 	bool
 	depends on MEMCG && SWAP
+	default y
+
+config MEMCG_FORCE_USE_VM_SWAPPINESS
+	bool "Force to use vm_swappiness instead of memcg->swappiness"
+	depends on MEMCG_SWAP
 	default y
 
 config MEMCG_KMEM
@@ -2425,3 +2440,4 @@ config ARCH_HAS_SYSCALL_WRAPPER
 	def_bool n
 
 source "init/Kconfig.gki"
+source "init/Kconfig.gki-debug"
