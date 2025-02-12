@@ -4,8 +4,10 @@
  *
  * Copyright (C) 2016-2018 Linaro Ltd.
  * Copyright (C) 2014 Sony Mobile Communications AB
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, 2020-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
+
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
@@ -13,8 +15,18 @@
 #include <linux/soc/qcom/smem.h>
 #include <linux/soc/qcom/smem_state.h>
 #include <linux/remoteproc.h>
+#include <linux/delay.h>
 #include "qcom_common.h"
 #include "qcom_q6v5.h"
+#include <trace/events/rproc_qcom.h>
+#if IS_ENABLED(CONFIG_SEC_SENSORS_SSC)
+#include <linux/adsp/ssc_ssr_reason.h>
+#endif
+#if IS_ENABLED(CONFIG_SND_SOC_SAMSUNG_AUDIO)
+#include <sound/samsung/sec_audio_sysfs.h>
+#include <sound/samsung/snd_debug_proc.h>
+#include <soc/qcom/adsp_sleepmon.h>
+#endif
 
 #define Q6V5_PANIC_DELAY_MS	200
 
@@ -52,25 +64,103 @@ int qcom_q6v5_unprepare(struct qcom_q6v5 *q6v5)
 }
 EXPORT_SYMBOL_GPL(qcom_q6v5_unprepare);
 
+void qcom_q6v5_register_ssr_subdev(struct qcom_q6v5 *q6v5, struct rproc_subdev *ssr_subdev)
+{
+	q6v5->ssr_subdev = ssr_subdev;
+}
+EXPORT_SYMBOL(qcom_q6v5_register_ssr_subdev);
+
+static void qcom_q6v5_crash_handler_work(struct work_struct *work)
+{
+	struct qcom_q6v5 *q6v5 = container_of(work, struct qcom_q6v5, crash_handler);
+	struct rproc *rproc = q6v5->rproc;
+	struct rproc_subdev *subdev;
+	int votes;
+
+	if (atomic_read(&q6v5->ssr_in_prog) != 0) {
+		dev_err(q6v5->dev, "skip crash handling\n");
+		return;
+	}
+
+	mutex_lock(&rproc->lock);
+
+	rproc->state = RPROC_CRASHED;
+
+	votes = atomic_xchg(&rproc->power, 0);
+	/* if votes are zero, rproc has already been shutdown */
+	if (votes == 0) {
+		mutex_unlock(&rproc->lock);
+		return;
+	}
+
+	list_for_each_entry_reverse(subdev, &rproc->subdevs, node) {
+		if (subdev->stop)
+			subdev->stop(subdev, true);
+	}
+
+	mutex_unlock(&rproc->lock);
+
+	/*
+	 * Temporary workaround until ramdump userspace application calls
+	 * sync() and fclose() on attempting the dump.
+	 */
+	msleep(100);
+	panic("Panicking, remoteproc %s crashed\n", q6v5->rproc->name);
+}
+
 static irqreturn_t q6v5_wdog_interrupt(int irq, void *data)
 {
 	struct qcom_q6v5 *q6v5 = data;
 	size_t len;
 	char *msg;
+#if IS_ENABLED(CONFIG_SEC_SENSORS_SSC) || IS_ENABLED(CONFIG_SND_SOC_SAMSUNG_AUDIO)
+	char *chk_name = NULL;
+#endif
 
 	/* Sometimes the stop triggers a watchdog rather than a stop-ack */
 	if (!q6v5->running) {
+		dev_info(q6v5->dev, "received wdog irq while q6 is offline\n");
 		complete(&q6v5->stop_done);
 		return IRQ_HANDLED;
 	}
 
 	msg = qcom_smem_get(QCOM_SMEM_HOST_ANY, q6v5->crash_reason, &len);
-	if (!IS_ERR(msg) && len > 0 && msg[0])
+	if (!IS_ERR(msg) && len > 0 && msg[0]) {
 		dev_err(q6v5->dev, "watchdog received: %s\n", msg);
-	else
+		trace_rproc_qcom_event(dev_name(q6v5->dev), "q6v5_wdog", msg);
+#if IS_ENABLED(CONFIG_SEC_SENSORS_SSC)
+		chk_name = strstr(q6v5->rproc->name, "adsp");
+		if (chk_name != NULL)
+			ssr_reason_call_back(msg, len);
+#endif
+	} else {
 		dev_err(q6v5->dev, "watchdog without message\n");
+	}
 
-	rproc_report_crash(q6v5->rproc, RPROC_WATCHDOG);
+#if IS_ENABLED(CONFIG_SND_SOC_SAMSUNG_AUDIO)
+	chk_name = strchr(q6v5->rproc->name, '-');
+	if (chk_name != NULL)
+		if (!strncmp(chk_name, "-adsp", 5)) {
+			sdp_info_print("watchdog received: %s, is_aud = %d\n",
+				msg, check_is_audio_active());
+			send_adsp_silent_reset_ev();
+		}
+#endif
+
+	q6v5->running = false;
+	dev_err(q6v5->dev, "rproc recovery state: %s\n",
+		q6v5->rproc->recovery_disabled ?
+		"disabled and lead to device crash" :
+		"enabled and kick reovery process");
+
+	if (q6v5->rproc->recovery_disabled) {
+		schedule_work(&q6v5->crash_handler);
+	} else {
+		if (q6v5->ssr_subdev)
+			qcom_notify_early_ssr_clients(q6v5->ssr_subdev);
+
+		rproc_report_crash(q6v5->rproc, RPROC_WATCHDOG);
+	}
 
 	return IRQ_HANDLED;
 }
@@ -80,15 +170,72 @@ static irqreturn_t q6v5_fatal_interrupt(int irq, void *data)
 	struct qcom_q6v5 *q6v5 = data;
 	size_t len;
 	char *msg;
+#if IS_ENABLED(CONFIG_SEC_SENSORS_SSC) || IS_ENABLED(CONFIG_SND_SOC_SAMSUNG_AUDIO)
+	char *chk_name = NULL;
+#endif
+
+	if (!q6v5->running) {
+		dev_info(q6v5->dev, "received fatal irq while q6 is offline\n");
+		return IRQ_HANDLED;
+	}
 
 	msg = qcom_smem_get(QCOM_SMEM_HOST_ANY, q6v5->crash_reason, &len);
-	if (!IS_ERR(msg) && len > 0 && msg[0])
+	if (!IS_ERR(msg) && len > 0 && msg[0]) {
 		dev_err(q6v5->dev, "fatal error received: %s\n", msg);
-	else
+		trace_rproc_qcom_event(dev_name(q6v5->dev), "q6v5_fatal", msg);
+#if IS_ENABLED(CONFIG_SEC_SENSORS_SSC)
+		chk_name = strstr(q6v5->rproc->name, "adsp");
+		if (chk_name != NULL) {
+			ssr_reason_call_back(msg, len);
+			if (strstr(msg, "IPLSREVOCER")) {
+				q6v5->rproc->fssr = true;
+				q6v5->rproc->prev_recovery_disabled = 
+					q6v5->rproc->recovery_disabled;
+				q6v5->rproc->recovery_disabled = false;
+			} else {
+				q6v5->rproc->fssr = false;			
+			}
+			dev_info(q6v5->dev, "recovery:%d,%d\n",
+				(int)q6v5->rproc->prev_recovery_disabled,
+				(int)q6v5->rproc->recovery_disabled);			
+		}
+#endif
+	} else {
 		dev_err(q6v5->dev, "fatal error without message\n");
+	}
+
+#if IS_ENABLED(CONFIG_SND_SOC_SAMSUNG_AUDIO)
+	chk_name = strchr(q6v5->rproc->name, '-');
+	if (chk_name != NULL)
+		if (!strncmp(chk_name, "-adsp", 5)) {
+			sdp_info_print("fatal error received: %s, is_aud = %d\n",
+				msg, check_is_audio_active());
+			send_adsp_silent_reset_ev();
+		}
+#endif
 
 	q6v5->running = false;
-	rproc_report_crash(q6v5->rproc, RPROC_FATAL_ERROR);
+	dev_err(q6v5->dev, "rproc recovery state: %s\n",
+		q6v5->rproc->recovery_disabled ? "disabled and lead to device crash" :
+		"enabled and kick reovery process");
+	if (q6v5->rproc->recovery_disabled) {
+		schedule_work(&q6v5->crash_handler);
+	} else {
+		int silent_ssr_in_progress;
+
+		spin_lock(&q6v5->silent_ssr_lock);
+		silent_ssr_in_progress = atomic_read(&q6v5->ssr_in_prog);
+		spin_unlock(&q6v5->silent_ssr_lock);
+
+		if (silent_ssr_in_progress) {
+			pr_err("[%s] silent ssr is ongoing. Return\n");
+			return IRQ_HANDLED;
+		}
+		if (q6v5->ssr_subdev)
+			qcom_notify_early_ssr_clients(q6v5->ssr_subdev);
+
+		rproc_report_crash(q6v5->rproc, RPROC_FATAL_ERROR);
+	}
 
 	return IRQ_HANDLED;
 }
@@ -157,8 +304,10 @@ int qcom_q6v5_request_stop(struct qcom_q6v5 *q6v5, struct qcom_sysmon *sysmon)
 
 	q6v5->running = false;
 
-	/* Don't perform SMP2P dance if sysmon already shut down the remote */
-	if (qcom_sysmon_shutdown_acked(sysmon))
+	/* Don't perform SMP2P dance if sysmon already shut
+	 * down the remote or if it isn't running
+	 */
+	if (q6v5->rproc->state != RPROC_RUNNING || qcom_sysmon_shutdown_acked(sysmon))
 		return 0;
 
 	qcom_smem_state_update_bits(q6v5->state,
@@ -205,87 +354,119 @@ int qcom_q6v5_init(struct qcom_q6v5 *q6v5, struct platform_device *pdev,
 		   void (*handover)(struct qcom_q6v5 *q6v5))
 {
 	int ret;
+	struct resource *res;
 
 	q6v5->rproc = rproc;
 	q6v5->dev = &pdev->dev;
 	q6v5->crash_reason = crash_reason;
 	q6v5->handover = handover;
+	q6v5->ssr_subdev = NULL;
+
+	atomic_set(&q6v5->ssr_in_prog, 0);
 
 	init_completion(&q6v5->start_done);
 	init_completion(&q6v5->stop_done);
 
-	q6v5->wdog_irq = platform_get_irq_byname(pdev, "wdog");
-	if (q6v5->wdog_irq < 0)
-		return q6v5->wdog_irq;
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	if (res) {
+		q6v5->rmb_base = devm_ioremap_resource(&pdev->dev, res);
+		if (IS_ERR(q6v5->rmb_base))
+			q6v5->rmb_base = NULL;
+	} else
+		q6v5->rmb_base = NULL;
 
-	ret = devm_request_threaded_irq(&pdev->dev, q6v5->wdog_irq,
-					NULL, q6v5_wdog_interrupt,
-					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-					"q6v5 wdog", q6v5);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to acquire wdog IRQ\n");
-		return ret;
+
+	q6v5->wdog_irq = platform_get_irq_byname(pdev, "wdog");
+	if (q6v5->wdog_irq < 0 && q6v5->wdog_irq != -ENXIO)
+		return q6v5->wdog_irq;
+	else if (q6v5->wdog_irq == -ENXIO) {
+		dev_warn(&pdev->dev, "wdog_irq not found in dt\n");
+	} else {
+		ret = devm_request_threaded_irq(&pdev->dev, q6v5->wdog_irq,
+				NULL, q6v5_wdog_interrupt,
+				IRQF_ONESHOT,
+				"q6v5 wdog", q6v5);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to acquire wdog IRQ\n");
+			return ret;
+		}
 	}
 
 	q6v5->fatal_irq = platform_get_irq_byname(pdev, "fatal");
-	if (q6v5->fatal_irq < 0)
+	if (q6v5->fatal_irq < 0 && q6v5->fatal_irq != -ENXIO)
 		return q6v5->fatal_irq;
-
-	ret = devm_request_threaded_irq(&pdev->dev, q6v5->fatal_irq,
-					NULL, q6v5_fatal_interrupt,
-					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-					"q6v5 fatal", q6v5);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to acquire fatal IRQ\n");
-		return ret;
+	else if (q6v5->fatal_irq == -ENXIO) {
+		dev_warn(&pdev->dev, "fatal_irq not found int dt\n");
+	} else {
+		ret = devm_request_threaded_irq(&pdev->dev, q6v5->fatal_irq,
+				NULL, q6v5_fatal_interrupt,
+				IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+				"q6v5 fatal", q6v5);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to acquire fatal IRQ\n");
+			return ret;
+		}
 	}
 
 	q6v5->ready_irq = platform_get_irq_byname(pdev, "ready");
-	if (q6v5->ready_irq < 0)
+	if (q6v5->ready_irq < 0 && q6v5->ready_irq != -ENXIO)
 		return q6v5->ready_irq;
-
-	ret = devm_request_threaded_irq(&pdev->dev, q6v5->ready_irq,
-					NULL, q6v5_ready_interrupt,
-					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-					"q6v5 ready", q6v5);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to acquire ready IRQ\n");
-		return ret;
+	else if (q6v5->ready_irq == -ENXIO) {
+		dev_warn(&pdev->dev, "ready_irq not found int dt\n");
+	} else {
+		ret = devm_request_threaded_irq(&pdev->dev, q6v5->ready_irq,
+				NULL, q6v5_ready_interrupt,
+				IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+				"q6v5 ready", q6v5);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to acquire ready IRQ\n");
+			return ret;
+		}
 	}
 
 	q6v5->handover_irq = platform_get_irq_byname(pdev, "handover");
-	if (q6v5->handover_irq < 0)
+	if (q6v5->handover_irq < 0 && q6v5->handover_irq != -ENXIO)
 		return q6v5->handover_irq;
-
-	ret = devm_request_threaded_irq(&pdev->dev, q6v5->handover_irq,
-					NULL, q6v5_handover_interrupt,
-					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-					"q6v5 handover", q6v5);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to acquire handover IRQ\n");
-		return ret;
+	else if (q6v5->handover_irq == -ENXIO) {
+		dev_warn(&pdev->dev, "handover_irq not found int dt\n");
+	} else {
+		ret = devm_request_threaded_irq(&pdev->dev, q6v5->handover_irq,
+				NULL, q6v5_handover_interrupt,
+				IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+				"q6v5 handover", q6v5);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to acquire handover IRQ\n");
+			return ret;
+		}
+		disable_irq(q6v5->handover_irq);
 	}
-	disable_irq(q6v5->handover_irq);
+
 
 	q6v5->stop_irq = platform_get_irq_byname(pdev, "stop-ack");
-	if (q6v5->stop_irq < 0)
+	if (q6v5->stop_irq < 0 && q6v5->stop_irq != -ENXIO)
 		return q6v5->stop_irq;
-
-	ret = devm_request_threaded_irq(&pdev->dev, q6v5->stop_irq,
-					NULL, q6v5_stop_interrupt,
-					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-					"q6v5 stop", q6v5);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to acquire stop-ack IRQ\n");
-		return ret;
+	else if (q6v5->stop_irq == -ENXIO) {
+		dev_warn(&pdev->dev, "stop_irq not found int dt\n");
+	} else {
+		ret = devm_request_threaded_irq(&pdev->dev, q6v5->stop_irq,
+						NULL, q6v5_stop_interrupt,
+						IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+						"q6v5 stop", q6v5);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to acquire stop-ack IRQ\n");
+			return ret;
+		}
 	}
 
-	q6v5->state = devm_qcom_smem_state_get(&pdev->dev, "stop", &q6v5->stop_bit);
+	q6v5->state = qcom_smem_state_get(&pdev->dev, "stop", &q6v5->stop_bit);
 	if (IS_ERR(q6v5->state)) {
 		dev_err(&pdev->dev, "failed to acquire stop state\n");
 		return PTR_ERR(q6v5->state);
 	}
 
+	INIT_WORK(&q6v5->crash_handler, qcom_q6v5_crash_handler_work);
+
+	spin_lock_init(&q6v5->silent_ssr_lock);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(qcom_q6v5_init);

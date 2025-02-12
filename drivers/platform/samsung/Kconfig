@@ -1,0 +1,96 @@
+# Samsung configuration options
+
+config SEC_PLATFORM
+	bool "Samsung device"
+	depends on ARCH_QCOM
+	help
+	  Support for Samsung products
+
+config SEC_PLATFORM_SM8550
+	bool "Samsung SM8550"
+	depends on ARCH_QCOM
+	select SEC_PLATFORM
+	help
+	  Support for Samsung SM8550 devices
+
+menu "Samsung board selection"
+
+	config SEC_PLATFORM_DM1Q
+		bool "Samsung dm1q board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy S23
+
+	config SEC_PLATFORM_DM2Q
+		bool "Samsung dm2q board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy S23+
+
+	config SEC_PLATFORM_DM3Q
+		bool "Samsung dm3q board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy S23 Ultra
+
+	config SEC_PLATFORM_Q5Q
+		bool "Samsung q5q board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Z Fold5
+
+	config SEC_PLATFORM_B5Q
+		bool "Samsung b5q board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Z Flip5
+
+	config SEC_PLATFORM_V5Q
+		bool "Samsung v5q board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for W24
+
+	config SEC_PLATFORM_E5Q
+		bool "Samsung e5q board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for W24 Flip
+
+	config SEC_PLATFORM_GTS9
+		bool "Samsung gts9 board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Tab S9
+
+	config SEC_PLATFORM_GTS9P
+		bool "Samsung gts9p board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Tab S9+
+
+	config SEC_PLATFORM_GTS9U
+		bool "Samsung gts9u board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Tab S9 Ultra
+
+	config SEC_PLATFORM_GTS9WIFI
+		bool "Samsung gts9wifi board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Tab S9 WLAN
+
+	config SEC_PLATFORM_GTS9PWIFI
+		bool "Samsung gts9pwifi board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Tab S9+ WLAN
+
+	config SEC_PLATFORM_GTS9UWIFI
+		bool "Samsung gts9uwifi board"
+		select SEC_PLATFORM_SM8550
+		help
+		  Support for Galaxy Tab S9 Ultra WLAN
+
+endmenu

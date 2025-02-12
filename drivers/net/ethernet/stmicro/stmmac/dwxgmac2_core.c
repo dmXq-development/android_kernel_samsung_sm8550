@@ -1089,6 +1089,11 @@ static int dwxgmac3_rxp_config(void __iomem *ioaddr,
 		entry->in_hw = false;
 	}
 
+	/* Specify that we are updating FRP instruction table */
+	val = readl(ioaddr + XGMAC_MTL_RXP_IACC_CTRL_ST);
+	val &= ~XGMAC_ACCSEL;
+	writel(val, ioaddr + XGMAC_MTL_RXP_IACC_CTRL_ST);
+
 	/* Update entries by reverse order */
 	while (1) {
 		entry = dwxgmac3_rxp_get_next_entry(entries, count, curr_prio);
@@ -1122,9 +1127,6 @@ static int dwxgmac3_rxp_config(void __iomem *ioaddr,
 		}
 	}
 
-	if (!nve)
-		goto re_enable;
-
 	/* Update all pass entry */
 	for (i = 0; i < count; i++) {
 		entry = &entries[i];
@@ -1137,6 +1139,9 @@ static int dwxgmac3_rxp_config(void __iomem *ioaddr,
 
 		entry->table_pos = nve++;
 	}
+
+	if (!nve)
+		goto re_enable;
 
 	/* Assume n. of parsable entries == n. of valid entries */
 	val = (nve << 16) & XGMAC_NPE;
@@ -1191,6 +1196,7 @@ static int dwxgmac2_flex_pps_config(void __iomem *ioaddr, int index,
 
 	val |= XGMAC_PPSCMDx(index, XGMAC_PPSCMD_START);
 	val |= XGMAC_TRGTMODSELx(index, XGMAC_PPSCMD_START);
+	val |= XGMAC_PPSEN0;
 
 	/* XGMAC Core has 4 PPS outputs at most.
 	 *
@@ -1203,7 +1209,7 @@ static int dwxgmac2_flex_pps_config(void __iomem *ioaddr, int index,
 	 * From XGMAC Core 3.20 and later, PPSEN{0,1,2,3} are writable and must
 	 * be set, or the PPS outputs stay in Fixed PPS mode by default.
 	 */
-	val |= XGMAC_PPSENx(index);
+	/*val |= XGMAC_PPSENx(index);*/
 
 	writel(cfg->start.tv_sec, ioaddr + XGMAC_PPSx_TARGET_TIME_SEC(index));
 

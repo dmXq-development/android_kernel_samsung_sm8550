@@ -29,6 +29,11 @@
 
 struct list_lru binder_alloc_lru;
 
+#define MAX_ALLOCATION_SIZE (1024 * 1024)
+#define MAX_ASYNC_ALLOCATION_SIZE (512 * 1024)
+
+extern int system_server_pid;
+
 static DEFINE_MUTEX(binder_alloc_mmap_lock);
 
 enum {
@@ -382,6 +387,7 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 	void __user *end_page_addr;
 	size_t size, data_offsets_size;
 	int ret;
+	size_t alloc_size;
 
 	/* Check binder_alloc is fully initialized */
 	if (!binder_alloc_get_vma(alloc)) {
@@ -412,12 +418,31 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 	size = max(size, sizeof(void *));
 
 	trace_android_vh_binder_alloc_new_buf_locked(size, &alloc->free_async_space, is_async);
-	if (is_async &&
-	    alloc->free_async_space < size + sizeof(struct binder_buffer)) {
-		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
-			     "%d: binder_alloc_buf size %zd failed, no async space left\n",
-			      alloc->pid, size);
-		return ERR_PTR(-ENOSPC);
+
+	alloc_size = size + sizeof(struct binder_buffer);
+	if (!is_async) {
+		// If allocation size is more than 1M, throw it away and return ENOSPC err
+		if (MAX_ALLOCATION_SIZE <= alloc_size) { // 1M
+			pr_info("%d: binder_alloc_buf size %zd failed, too large size\n",
+					alloc->pid, size);
+			return ERR_PTR(-ENOSPC);
+		} else if (MAX_ALLOCATION_SIZE * 7 / 10 <= alloc_size) {
+			pr_info("%d: binder_alloc_buf size %zd, try to alloc large size\n",
+					alloc->pid, size);
+		}
+	} else {
+		if (alloc->free_async_space < alloc_size) {
+			pr_info("%d: binder_alloc_buf size %zd(%zd) failed, no async space left\n",
+					alloc->pid, size, alloc->free_async_space);
+			return ERR_PTR(-ENOSPC);
+		} else if (MAX_ASYNC_ALLOCATION_SIZE <= alloc_size) { //512K
+			pr_info("%d: binder_alloc_buf size %zd(%zd) failed, too large async size\n",
+					alloc->pid, size, alloc->free_async_space);
+			return ERR_PTR(-ENOSPC);
+		} else if (MAX_ASYNC_ALLOCATION_SIZE * 7 / 10 <= alloc_size) {
+			pr_info("%d: binder_alloc_buf size %zd(%zd), try to alloc large async size\n",
+					alloc->pid, size, alloc->free_async_space);
+		}
 	}
 
 	while (n) {
@@ -522,6 +547,14 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 	buffer->oneway_spam_suspect = false;
 	if (is_async) {
 		alloc->free_async_space -= size;
+		if ((system_server_pid == alloc->pid) && (alloc->free_async_space <= 153600)) { // 150K
+			pr_info("%d: [free_size<150K] binder_alloc_buf size %zd async free %zd\n",
+					alloc->pid, size, alloc->free_async_space);
+		}
+		if ((system_server_pid == alloc->pid) && (size >= 122880)) { // 120K
+			pr_info("%d: [alloc_size>120K] binder_alloc_buf size %zd async free %zd\n",
+					alloc->pid, size, alloc->free_async_space);
+		}
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC_ASYNC,
 			     "%d: binder_alloc_buf size %zd async free %zd\n",
 			      alloc->pid, size, alloc->free_async_space);
