@@ -15,8 +15,6 @@
 
 #include <asm/cacheflush.h>
 
-#include <linux/samsung/sec_kunit.h>
-
 #include "sec_reboot_cmd.h"
 
 static struct reboot_cmd_drvdata *reboot_cmd;
@@ -31,7 +29,7 @@ static __always_inline bool __rbcmd_is_probed(void)
 	return !!reboot_cmd;
 }
 
-__ss_static struct reboot_cmd_stage *__rbcmd_get_stage(struct reboot_cmd_drvdata *drvdata,
+static struct reboot_cmd_stage *__rbcmd_get_stage(struct reboot_cmd_drvdata *drvdata,
 		enum sec_rbcmd_stage s)
 {
 	BUG_ON((unsigned long)s >= (unsigned long)SEC_RBCMD_STAGE_MAX);
@@ -39,7 +37,7 @@ __ss_static struct reboot_cmd_stage *__rbcmd_get_stage(struct reboot_cmd_drvdata
 	return &drvdata->stage[s];
 }
 
-__ss_static __ss_inline int __rbcmd_add_cmd(struct reboot_cmd_drvdata *drvdata,
+static inline int __rbcmd_add_cmd(struct reboot_cmd_drvdata *drvdata,
 		enum sec_rbcmd_stage s, struct sec_reboot_cmd *rc)
 {
 	struct reboot_cmd_stage *stage;
@@ -62,7 +60,7 @@ int sec_rbcmd_add_cmd(enum sec_rbcmd_stage s, struct sec_reboot_cmd *rc)
 }
 EXPORT_SYMBOL(sec_rbcmd_add_cmd);
 
-__ss_static __ss_inline int __rbcmd_del_cmd(struct reboot_cmd_drvdata *drvdata,
+static inline int __rbcmd_del_cmd(struct reboot_cmd_drvdata *drvdata,
 		enum sec_rbcmd_stage s, struct sec_reboot_cmd *rc)
 {
 	struct reboot_cmd_stage *stage;
@@ -85,7 +83,7 @@ int sec_rbcmd_del_cmd(enum sec_rbcmd_stage s, struct sec_reboot_cmd *rc)
 }
 EXPORT_SYMBOL(sec_rbcmd_del_cmd);
 
-__ss_static __ss_inline int __rbcmd_set_default_cmd(
+static inline int __rbcmd_set_default_cmd(
 		struct reboot_cmd_drvdata *drvdata,
 		enum sec_rbcmd_stage s, struct sec_reboot_cmd *rc)
 {
@@ -118,7 +116,7 @@ int sec_rbcmd_set_default_cmd(enum sec_rbcmd_stage s,
 }
 EXPORT_SYMBOL(sec_rbcmd_set_default_cmd);
 
-__ss_static __ss_inline int __rbcmd_unset_default_cmd(
+static inline int __rbcmd_unset_default_cmd(
 		struct reboot_cmd_drvdata *drvdata,
 		enum sec_rbcmd_stage s, struct sec_reboot_cmd *rc)
 {
@@ -231,7 +229,7 @@ static bool __rbcmd_is_mulit_cmd(const char *cmd, const char *delim)
 	return pos ? true : false;
 }
 
-__ss_static int __rbcmd_handle(struct reboot_cmd_stage *stage,
+static int __rbcmd_handle(struct reboot_cmd_stage *stage,
 		struct sec_reboot_param *param)
 {
 	const char *cmd = param->cmd;
@@ -389,7 +387,7 @@ static int __rbcmd_debugfs_create(struct builder *bd) { return 0; }
 static void __rbcmd_debugfs_remove(struct builder *bd) {}
 #endif
 
-__ss_static int __rbcmd_parse_dt_reboot_notifier_priority(struct builder *bd,
+static int __rbcmd_parse_dt_reboot_notifier_priority(struct builder *bd,
 		struct device_node *np)
 {
 	struct reboot_cmd_drvdata *drvdata =
@@ -409,7 +407,7 @@ __ss_static int __rbcmd_parse_dt_reboot_notifier_priority(struct builder *bd,
 	return 0;
 }
 
-__ss_static int __rbcmd_parse_dt_restart_handler_priority(struct builder *bd,
+static int __rbcmd_parse_dt_restart_handler_priority(struct builder *bd,
 		struct device_node *np)
 {
 	struct reboot_cmd_drvdata *drvdata =
@@ -451,7 +449,7 @@ static void __rbcmd_remove_each_stage(struct reboot_cmd_stage *stage)
 	mutex_destroy(&stage->lock);
 }
 
-__ss_static int __rbcmd_probe_prolog(struct builder *bd)
+static int __rbcmd_probe_prolog(struct builder *bd)
 {
 	struct reboot_cmd_drvdata *drvdata =
 			container_of(bd, struct reboot_cmd_drvdata, bd);
