@@ -212,6 +212,7 @@ obj-y				+= usb/typec/common/
 obj-y				+= battery/charger/pca9481_charger/
 obj-y				+= vibrator/cs/cs40l26/
 obj-y				+= input/misc/hall/
+obj-y				+= mstdrv/
 obj-y				+= optics/
 obj-y				+= battery/fuelgauge/max77705_fuelgauge/
 obj-y				+= mfd/maxim/

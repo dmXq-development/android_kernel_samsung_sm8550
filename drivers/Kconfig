@@ -285,6 +285,8 @@ source "drivers/vibrator/cs/cs40l26/Kconfig"
 
 source "drivers/input/misc/hall/Kconfig"
 
+source "drivers/mstdrv/Kconfig"
+
 source "drivers/optics/Kconfig"
 
 source "drivers/battery/fuelgauge/max77705_fuelgauge/Kconfig"
