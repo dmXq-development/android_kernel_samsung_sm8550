@@ -33,8 +33,7 @@ declare -r krnl_defconfig_head=$(git -C "${krnl_config_dir}" rev-parse HEAD)
 declare -r soc="kalama"
 
 declare -A devices=(
-	[dm1q]=1 [dm2q]=1 [dm3q]=1 [q5q]=1 [b5q]=1 [v5q]=1 [e5q]=1
-	[gts9]=1 [gts9p]=1 [gts9u]=1 [gts9wifi]=1 [gts9pwifi]=1 [gts9uwifi]=1
+	[dm1q]=1 [dm2q]=1 [dm3q]=1
 )
 
 print_environment() {
