@@ -25,7 +25,7 @@
 #include <linux/pm_wakeup.h>
 #include "../common/sec_charging_common.h"
 
-#define MFC_FW_BIN_VERSION		0x3039
+#define MFC_FW_BIN_VERSION		0x303A
 #define MFC_FW_VER_BIN_LSI		0xBFC
 #define MTP_MAX_PROGRAM_SIZE 0x4000
 #define MTP_VERIFY_ADDR			0x0000
@@ -195,6 +195,9 @@
 #define WPCTX_E_FOD_Q_LIMIT				0x800
 #define WPCTX_E_FOD_I1_LIMIT				0x801
 #define WPCTX_E_FOD_I2_LIMIT				0x802
+#define WPCTX_E_FOD_MIN_FREQ_CURRENT_LIMIT	0x803
+#define WPCTX_E_FOD_POWER_LOSS_LIMIT		0x804
+#define WPCTX_E_FOD_PING_CURRENT_LIMIT		0x805
 
 #define MFC_ADT_ERROR_CODE_REG				0x8D
 
@@ -838,6 +841,9 @@ struct mfc_iec_data {
 	u8 reg_800;
 	u8 reg_801;
 	u8 reg_802;
+	u8 reg_803;
+	u8 reg_804;
+	u8 reg_805;
 };
 
 #if defined(CONFIG_WIRELESS_IC_PARAM)

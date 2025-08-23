@@ -4998,6 +4998,9 @@ static void mfc_set_iec_params(struct i2c_client *client, struct mfc_iec_data da
 	mfc_reg_write(client, WPCTX_E_FOD_Q_LIMIT, data.reg_800);
 	mfc_reg_write(client, WPCTX_E_FOD_I1_LIMIT, data.reg_801);
 	mfc_reg_write(client, WPCTX_E_FOD_I2_LIMIT, data.reg_802);
+	mfc_reg_write(client, WPCTX_E_FOD_MIN_FREQ_CURRENT_LIMIT, data.reg_803);
+	mfc_reg_write(client, WPCTX_E_FOD_POWER_LOSS_LIMIT, data.reg_804);
+	mfc_reg_write(client, WPCTX_E_FOD_PING_CURRENT_LIMIT, data.reg_805);
 }
 
 /* mfc_mst_routine : MST dedicated codes */
@@ -5649,15 +5652,35 @@ static void mfc_chg_parse_iec_data(struct device_node *np,
 	else
 		pdata->iec_params.reg_802 = temp;
 
+	ret = of_property_read_u32(np, "reg_803", &temp);
+	if (ret < 0)
+		pdata->iec_params.reg_803 = 0xFF;
+	else
+		pdata->iec_params.reg_803 = temp;
+
+	ret = of_property_read_u32(np, "reg_804", &temp);
+	if (ret < 0)
+		pdata->iec_params.reg_804 = 0xFF;
+	else
+		pdata->iec_params.reg_804 = temp;
+
+	ret = of_property_read_u32(np, "reg_805", &temp);
+	if (ret < 0)
+		pdata->iec_params.reg_805 = 0xFF;
+	else
+		pdata->iec_params.reg_805 = temp;
+
 	pr_info("%s: reg_56=0x%x, reg_57=0x%x, reg_5B=0x%x,"
 		" reg_84=0x%x, reg_85=0x%x, reg_86=0x%x, reg_87=0x%x,"
 		" reg_88=0x%x, reg_89=0x%x, reg_8A=0x%x, reg_8B=0x%x,"
-		" reg_800=0x%x, reg_801=0x%x, reg_802=0x%x\n",
+		" reg_800=0x%x, reg_801=0x%x, reg_802=0x%x,"
+		" reg_803=0x%x, reg_804=0x%x, reg_805=0x%x\n",
 		__func__, pdata->iec_params.reg_56, pdata->iec_params.reg_57,
 		pdata->iec_params.reg_5B, pdata->iec_params.reg_84, pdata->iec_params.reg_85,
 		pdata->iec_params.reg_86, pdata->iec_params.reg_87, pdata->iec_params.reg_88,
 		pdata->iec_params.reg_89, pdata->iec_params.reg_8A, pdata->iec_params.reg_8B,
-		pdata->iec_params.reg_800, pdata->iec_params.reg_801, pdata->iec_params.reg_802);
+		pdata->iec_params.reg_800, pdata->iec_params.reg_801, pdata->iec_params.reg_802,
+		pdata->iec_params.reg_803, pdata->iec_params.reg_804, pdata->iec_params.reg_805);
 }
 
 #if defined(CONFIG_WIRELESS_IC_PARAM)
