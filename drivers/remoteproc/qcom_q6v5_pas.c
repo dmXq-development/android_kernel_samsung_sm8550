@@ -747,8 +747,18 @@ static int adsp_start(struct rproc *rproc)
 	trace_rproc_qcom_event(dev_name(adsp->dev), "Q6_auth_reset", "enter");
 
 	ret = qcom_scm_pas_auth_and_reset(adsp->pas_id);
+#ifdef HDM_SUPPORT
+	if (ret) {
+		// Intentionally block cp load.
+		if (hdm_cp_support)
+			goto free_metadata;
+		else
+			panic("Panicking, auth and reset failed for remoteproc %s\n", rproc->name);
+	}
+#else
 	if (ret)
 		panic("Panicking, auth and reset failed for remoteproc %s\n", rproc->name);
+#endif
 	trace_rproc_qcom_event(dev_name(adsp->dev), "Q6_auth_reset", "exit");
 
 	/* if needed, signal Q6 to continute booting */

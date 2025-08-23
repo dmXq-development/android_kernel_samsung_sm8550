@@ -186,7 +186,7 @@ static irqreturn_t q6v5_fatal_interrupt(int irq, void *data)
 		chk_name = strstr(q6v5->rproc->name, "adsp");
 		if (chk_name != NULL) {
 			ssr_reason_call_back(msg, len);
-			if (strstr(msg, "IPLSREVOCER")) {
+			if (strstr(msg, "IPLSREVOCER") || strstr(msg, "SLIMBUS_PM_ERR_FATAL_V01")) {
 				q6v5->rproc->fssr = true;
 				q6v5->rproc->prev_recovery_disabled = 
 					q6v5->rproc->recovery_disabled;
