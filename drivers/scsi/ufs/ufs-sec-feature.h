@@ -28,14 +28,23 @@
 
 #define SCSI_UFS_TIMEOUT (10 * HZ)
 
-#define HEALTH_DESC_PARAM_VENDOR_LIFE_TIME_EST 0x22
+#define UFS_S_INFO_SIZE 512
+#define UFS_SHI_SIZE 256
+
+#define HEALTH_DESC_PARAM_SEC_FLT 0x22
+#define HEALTH_DESC_PARAM_KIC_FLT 0x11
+#define HEALTH_DESC_PARAM_MIC_FLT 0x5
+#define HEALTH_DESC_PARAM_SKH_FLT 0x5
 
 struct ufs_vendor_dev_info {
 	struct ufs_hba *hba;
 	char unique_number[UFS_UN_MAX_DIGITS];
 	u8 lt;
-	u8 flt;
-	unsigned int lc;
+	u16 flt;
+	u8 eli;
+	unsigned int ic;
+	char s_info[UFS_S_INFO_SIZE];
+	char shi[UFS_SHI_SIZE];
 	bool device_stuck;
 };
 

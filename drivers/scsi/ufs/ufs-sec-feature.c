@@ -109,12 +109,33 @@ void ufs_sec_get_health_desc(struct ufs_hba *hba)
 		goto out;
 	}
 
-	/* getting Life Time at Device Health DESC*/
 	vdi->lt = desc_buf[HEALTH_DESC_PARAM_LIFE_TIME_EST_A];
-	dev_info(hba->dev, "LT: 0x%02x\n", (desc_buf[3] << 4) | desc_buf[4]);
+	vdi->eli = desc_buf[HEALTH_DESC_PARAM_EOL_INFO];
 
-	vdi->flt = desc_buf[HEALTH_DESC_PARAM_VENDOR_LIFE_TIME_EST];
-	dev_info(hba->dev, "FLT: 0x%02x\n", vdi->flt);
+	switch (hba->dev_info.wmanufacturerid) {
+	case UFS_VENDOR_SAMSUNG:
+		vdi->flt = (u16)desc_buf[HEALTH_DESC_PARAM_SEC_FLT];
+		break;
+	case UFS_VENDOR_TOSHIBA:
+		vdi->flt = (((u16)desc_buf[HEALTH_DESC_PARAM_KIC_FLT] << 8) |
+				(u16)desc_buf[HEALTH_DESC_PARAM_KIC_FLT + 1]);
+		break;
+	case UFS_VENDOR_MICRON:
+		vdi->flt = (u16)desc_buf[HEALTH_DESC_PARAM_MIC_FLT];
+		break;
+	case UFS_VENDOR_SKHYNIX:
+		vdi->flt = (((u16)desc_buf[HEALTH_DESC_PARAM_SKH_FLT] << 8) |
+				(u16)desc_buf[HEALTH_DESC_PARAM_SKH_FLT + 1]);
+		break;
+	default:
+		vdi->flt = 0;
+		break;
+	}
+
+	dev_info(hba->dev, "LT: 0x%02x, FLT: %u, ELI: 0x%01x\n",
+			((desc_buf[HEALTH_DESC_PARAM_LIFE_TIME_EST_A] << 4) |
+			 desc_buf[HEALTH_DESC_PARAM_LIFE_TIME_EST_B]),
+			vdi->flt, vdi->eli);
 out:
 	if (desc_buf)
 		kfree(desc_buf);
