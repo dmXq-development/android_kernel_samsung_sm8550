@@ -65,7 +65,5 @@ void __dbg_region_pool_exit(struct builder *bd)
 	struct dbg_region_drvdata *drvdata =
 			container_of(bd, struct dbg_region_drvdata, bd);
 
-	BUG_ON(!drvdata->pool);
-
 	drvdata->pool->remove(drvdata);
 }

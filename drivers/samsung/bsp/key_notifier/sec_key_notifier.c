@@ -29,8 +29,6 @@ static void inline update_acceptable_event(unsigned int event_code, bool is_add)
 		sec_kn_acceptable_event[event_code]++;
 	else
 		sec_kn_acceptable_event[event_code]--;
-
-	BUG_ON(sec_kn_acceptable_event[event_code] < 0);
 }
 
 static inline void increase_num_of_acceptable_event(unsigned int event_code)

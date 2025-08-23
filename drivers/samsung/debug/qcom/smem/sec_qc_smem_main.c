@@ -61,7 +61,6 @@ static int __smem_test_vendor0(struct builder *bd)
 	if (IS_ERR_OR_NULL(vendor0)) {
 		dev_err(bd->dev, "SMEM_ID_VENDOR0 get entry error(%ld)\n",
 				PTR_ERR(vendor0));
-		panic("sec_smem_probe fail");
 		return -EINVAL;
 	}
 
@@ -83,7 +82,6 @@ static int __smem_test_vendor1(struct builder *bd)
 	if (IS_ERR_OR_NULL(vendor1)) {
 		dev_err(bd->dev, "SMEM_ID_VENDOR1 get entry error(%ld)\n",
 				PTR_ERR(vendor1));
-		panic("sec_smem_probe fail");
 		return -EINVAL;
 	}
 

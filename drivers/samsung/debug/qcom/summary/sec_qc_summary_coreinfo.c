@@ -93,7 +93,7 @@ static void __summary_coreinfo_init_dbg_apps(
 	dbg_apss->coreinfo.coreinfo_size = (uintptr_t)&summary_coreinfo_size;
 	dbg_apss->coreinfo.coreinfo_note = (uintptr_t)summary_coreinfo_note;
 
-	pr_info("coreinfo_data=0x%llx\n", dbg_apss->coreinfo.coreinfo_data);
+	pr_info("coreinfo_data=0x%pK\n", (void *)dbg_apss->coreinfo.coreinfo_data);
 }
 
 

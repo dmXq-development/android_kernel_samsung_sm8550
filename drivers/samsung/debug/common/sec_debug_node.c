@@ -204,8 +204,6 @@ static int sec_debug_set_dump_sink(const char *val,
 
 static int sec_debug_get_dump_sink(char *buffer, const struct kernel_param *kp)
 {
-	BUG_ON(dump_sink_virt && (*dump_sink_virt != dump_sink));
-
 	return param_get_uint(buffer, kp);
 }
 

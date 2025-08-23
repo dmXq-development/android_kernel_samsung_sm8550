@@ -225,7 +225,8 @@ static void __ap_context_free_client(struct builder *bd)
 	ssize_t type;
 
 	type = __ap_context_unique_id_to_type(drvdata->unique_id);
-	BUG_ON(type < 0 || type >= TYPE_VH_MAX);
+	if (type >= TYPE_VH_MAX || type < 0)
+		return;
 
 	ap_context[type] = NULL;
 

@@ -68,10 +68,8 @@ static void __qc_force_err_del_handlers(ssize_t last_failed)
 {
 	struct force_err_handle *h;
 	int err = 0;
-	ssize_t n = ARRAY_SIZE(__qc_force_err_default);
 	ssize_t i;
 
-	BUG_ON((last_failed < 0) || (last_failed > n));
 
 	for (i = last_failed - 1; i >= 0; i--) {
 		h = &__qc_force_err_default[i];

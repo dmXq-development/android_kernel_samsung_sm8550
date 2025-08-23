@@ -146,6 +146,10 @@ static ssize_t __extrb_info_report_cpu_kern_ex_info(const rst_exinfo_t *rst_exin
 	__qc_hw_param_scnprintf(buf, sz_buf, info_size, "\"");
 	__qc_hw_param_scnprintf(buf, sz_buf, info_size, ",\"PKO\":\"%x\"", kern_ex_info->pko);
 
+	/* NOTE: While integrating ETR* into ETRA, there was a duplication PC,LR.
+	 * Since ETRA contains more valueable information, it was decided to delete ETRB 
+	 */
+#if 0
 	__qc_hw_param_scnprintf(buf, sz_buf, info_size, ",\"LR\":\"");
 	max_cnt = sizeof(kern_ex_info->lr_val);
 	max_cnt = max_cnt / sizeof(kern_ex_info->lr_val[0]);
@@ -165,7 +169,7 @@ static ssize_t __extrb_info_report_cpu_kern_ex_info(const rst_exinfo_t *rst_exin
 			__qc_hw_param_scnprintf(buf, sz_buf, info_size, ",");
 	}
 	__qc_hw_param_scnprintf(buf, sz_buf, info_size, "\"");
-
+#endif
 	return info_size;
 }
 
