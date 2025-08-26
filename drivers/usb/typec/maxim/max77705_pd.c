@@ -819,6 +819,7 @@ void max77705_current_pdo(struct max77705_usbc_platform_data *usbc_data, unsigne
 	U_SEC_PDO_OBJECT pdo_obj;
 	POWER_LIST* pPower_list;
 	POWER_LIST prev_power_list;
+	int usb_comm_capable = 0;
 
 	if (!pd_data->pd_noti.sink_status.available_pdo_num)
 		do_power_nego = true;
@@ -856,6 +857,8 @@ void max77705_current_pdo(struct max77705_usbc_platform_data *usbc_data, unsigne
 			pPower_list->comm_capable = pdo_obj.BITS_pdo_fixed.usb_communications_capable;
 			pPower_list->suspend = pdo_obj.BITS_pdo_fixed.usb_suspend_supported;
 			available_pdo_num++;
+			if (!usb_comm_capable)
+				usb_comm_capable = !!pPower_list->comm_capable;
  			break;
 		case PDO_TYPE_APDO:
 			pd_data->pd_noti.sink_status.has_apdo = true;
@@ -885,6 +888,12 @@ void max77705_current_pdo(struct max77705_usbc_platform_data *usbc_data, unsigne
 			do_power_nego = true;
 	}
 
+#if IS_ENABLED(CONFIG_USE_USB_COMMUNICATIONS_CAPABLE)
+	if (usb_comm_capable)
+		send_otg_notify(get_otg_notify(), NOTIFY_EVENT_PD_USB_COMM_CAPABLE, USB_NOTIFY_COMM_CAPABLE);
+	else
+		send_otg_notify(get_otg_notify(), NOTIFY_EVENT_PD_USB_COMM_CAPABLE, USB_NOTIFY_NO_COMM_CAPABLE);
+#endif
 
 	if (!do_power_nego && (pd_data->pd_noti.sink_status.available_pdo_num != available_pdo_num))
 		do_power_nego = true;

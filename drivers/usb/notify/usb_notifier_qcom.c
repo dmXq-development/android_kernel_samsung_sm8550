@@ -140,10 +140,6 @@ static int ccic_usb_handle_notification(struct notifier_block *nb,
 	case USB_STATUS_NOTIFY_ATTACH_DFP:
 		pr_info("%s: Turn On Host(DFP), max speed restrict = %d\n", __func__, usb_status.sub3);
 
-//UFP = 0, DFP = 1
-#if IS_ENABLED(CONFIG_COMBO_REDRIVER_PS5169)
-		ps5169_config(USB_ONLY_MODE, 1);
-#endif
 		dwc3_max_speed_setting(usb_status.sub3);
 		send_otg_notify(o_notify, NOTIFY_EVENT_HOST, 1);
 		pdata->is_host = 1;
@@ -401,7 +397,16 @@ static int set_online(int event, int state)
 
 static int qcom_set_host(bool enable)
 {
+//UFP = 0, DFP = 1
+#if IS_ENABLED(CONFIG_COMBO_REDRIVER_PS5169)
+	if (enable)
+		ps5169_config(USB_ONLY_MODE, 1);
+#endif
 	dwc_msm_id_event(enable);
+#if IS_ENABLED(CONFIG_COMBO_REDRIVER_PS5169)
+	if (!enable)
+		ps5169_config(CLEAR_STATE, 0);
+#endif
 	return 0;
 }
 

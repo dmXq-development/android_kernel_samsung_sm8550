@@ -628,6 +628,9 @@ static void max77705_ccstat_irq_handler(void *data, int irq)
 			usbc_data->cc_data->current_vcon = 0xFF;
 			usbc_data->detach_done_wait = 1;
 #if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
+#if IS_ENABLED(CONFIG_USE_USB_COMMUNICATIONS_CAPABLE)
+			send_otg_notify(o_notify, NOTIFY_EVENT_PD_USB_COMM_CAPABLE, USB_NOTIFY_NO_COMM_CAPABLE);
+#endif
 			send_otg_notify(o_notify, NOTIFY_EVENT_PD_CONTRACT, 0);
 #if defined(CONFIG_USB_AUDIO_POWER_SAVING)
 			send_otg_notify(o_notify, NOTIFY_EVENT_REVERSE_BYPASS_DEVICE_ATTACH, 0);

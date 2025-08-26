@@ -2086,6 +2086,12 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 			goto out;
 	}
 
+	if (dep->pending_list.next == NULL) {
+		pr_err("Error: dep->pending_list is NULL or uninitialized\n");
+		ret = -EINVAL;
+		goto out;
+	}
+
 	list_for_each_entry(r, &dep->pending_list, list) {
 		if (r == req) {
 			/*

@@ -20,6 +20,7 @@
 #include <linux/version.h>
 #include <linux/usb_notify.h>
 #include <linux/usb/hcd.h>
+#include <linux/pm_runtime.h>
 
 #define SMARTDOCK_INDEX	1
 #define MMDOCK_INDEX	2
@@ -58,6 +59,12 @@ static struct dev_table essential_device_table[] = {
 static struct dev_table unsupport_device_table[] = {
 	{ .dev = { USB_DEVICE(0x1a0a, 0x0201), },
 	}, /* The device for usb certification */
+	{}
+};
+
+static struct dev_table autosuspend_delay_hub_table[] = {
+	{ .dev = { USB_DEVICE(0x0a12, 0x4010), },
+	}, /* The device for autosuspend delay */
 	{}
 };
 
@@ -515,6 +522,26 @@ static void check_unsupport_device(struct usb_device *dev)
 	}
 }
 
+static void check_autosuspend_delay_hub(struct usb_device *dev)
+{
+	struct dev_table *id;
+
+	if (!is_usbhub(dev))
+		return;
+
+	for (id = autosuspend_delay_hub_table; id->dev.match_flags; id++) {
+		if ((id->dev.match_flags & USB_DEVICE_ID_MATCH_VENDOR) &&
+		(id->dev.match_flags & USB_DEVICE_ID_MATCH_PRODUCT) &&
+		id->dev.idVendor == le16_to_cpu(dev->descriptor.idVendor) &&
+		id->dev.idProduct == le16_to_cpu(dev->descriptor.idProduct)) {
+			pm_runtime_set_autosuspend_delay(&dev->dev, 2000);
+			pr_info("%s : VID : 0x%x, PID : 0x%x\n", __func__,
+				dev->descriptor.idVendor, dev->descriptor.idProduct);
+			break;
+		}
+	}
+}
+
 static int dev_notify(struct notifier_block *self,
 			       unsigned long action, void *dev)
 {
@@ -529,6 +556,7 @@ static int dev_notify(struct notifier_block *self,
 		check_unsupport_device(dev);
 		check_usbaudio(dev);
 		check_usbgroup(dev);
+		check_autosuspend_delay_hub(dev);
 		break;
 	case USB_DEVICE_REMOVE:
 		call_device_notify(dev, 0);

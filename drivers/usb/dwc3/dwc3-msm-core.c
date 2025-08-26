@@ -1138,18 +1138,30 @@ static int dwc3_msm_is_ports_suspended(struct dwc3_msm *mdwc)
 {
 	int i, num_ports;
 	u32 reg;
+	bool is_hs_u3 = false;
+	bool is_ss_u3_or_rxdetect = false;
 
 	reg = dwc3_msm_read_reg(mdwc->base, USB3_HCSPARAMS1);
 	num_ports = HCS_MAX_PORTS(reg);
 
 	for (i = 0; i < num_ports; i++) {
 		reg = dwc3_msm_read_reg(mdwc->base, USB3_PORTSC + i*0x10);
-		pr_err("%s reg = %x\n", __func__, reg);
-		if (((reg & PORT_PLS_MASK) != XDEV_U3) && ((reg & PORT_PLS_MASK) != XDEV_RXDETECT))
-			return 0; // If any port is not U3 or RXDETECT, return 0
+		pr_info("%s reg = %x\n", __func__, reg);
+
+		if (!i && ((reg & PORT_PLS_MASK) == XDEV_U3))
+			is_hs_u3 = true; // HS port is U3
+
+		if (i && (((reg & PORT_PLS_MASK) == XDEV_U3) || ((reg & PORT_PLS_MASK) == XDEV_RXDETECT)))
+			is_ss_u3_or_rxdetect = true; // SS port is U3 or RXDETECT
 	}
 
-	return 1; // All ports are U3 or RXDETECT, return 1
+	if (is_hs_u3 && is_ss_u3_or_rxdetect) { // Only when HS is U3 and SS is U3 or RXDETECT
+		pr_info("%s normal suspend sequence\n", __func__);
+		return 1;
+	} else {
+		pr_info("%s bypass\n", __func__);
+		return 0;
+	}
 }
 
 static bool dwc3_msm_is_host_superspeed(struct dwc3_msm *mdwc)
