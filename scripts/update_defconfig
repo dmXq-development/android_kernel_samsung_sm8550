@@ -27,7 +27,7 @@ export base_build_cmd
 cd "$krnl_top" || exit
 
 # These values must be changed for forks!
-declare -r krnl_defconfig_url="https://github.com/chaptsand/android_kernel_samsung_sm8550"
+declare -r krnl_defconfig_url="https://github.com/dmXq-development/android_kernel_samsung_sm8550"
 declare -r krnl_defconfig_head=$(git -C "${krnl_config_dir}" rev-parse HEAD)
 
 declare -r soc="kalama"
