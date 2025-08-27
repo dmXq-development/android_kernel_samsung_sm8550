@@ -164,7 +164,10 @@ void vl53l8_initialize_state_for_resume(struct vl53l8_k_module_t *p_module)
 	p_module->stdev.host_dev.p_fw_buff = NULL;
 	status = vl53l5_init(&p_module->stdev);
 	if (status < 0) {
-		vl53l8_k_log_error("resume init err");
+		vl53l8_k_log_error("resume init err: %d\n", status);
+#ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
+		vl53l8_last_error_counter(p_module, status);
+#endif
 		p_module->stdev.last_dev_error = VL53L8_RESUME_INIT_ERROR;
 		return;
 	}
@@ -1766,6 +1769,24 @@ static ssize_t vl53l8_target_status_show(struct device *dev,
 	return j;
 }
 
+static ssize_t vl53l8_asz_distance_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct vl53l8_k_module_t *p_module = dev_get_drvdata(dev);
+	u16 asz_distance[4], asz_status[4];
+	u8 i = 0;
+
+	for (; i < 4; i++) {
+		asz_distance[i] =
+			(uint16_t)(p_module->range.data.tcpm_0_patch.d16_per_target_data.depth16[64 + i] & 0x1FFFU);
+		asz_status[i] =
+			(uint16_t)(p_module->range.data.tcpm_0_patch.d16_per_target_data.depth16[64 + i] & 0xE000U) >> 13;
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%d, %d, %d, %d, %d, %d, %d, %d\n",
+		asz_distance[0], asz_status[0], asz_distance[1], asz_status[1],
+		asz_distance[2], asz_status[2], asz_distance[3], asz_status[3]);
+}
 
 static ssize_t vl53l8_test_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -1865,7 +1886,7 @@ static ssize_t vl53l8_status_show(struct device *dev,
 }
 
 #ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
-void sort_error_code(s16 *top5_error_code, u8 *top5_error_cnt)
+void sort_error_code(int *top5_error_code, u8 *top5_error_cnt)
 {
 	int i;
 	int temp;
@@ -1892,7 +1913,7 @@ static ssize_t vl53l8_error_show(struct device *dev,
 
 	int i = 0;
 	int j = 0;
-	s16 top5_error_code[5] = {0};
+	int top5_error_code[5] = {0};
 	u8 top5_error_cnt[5] = {0};
 
 	vl53l8_last_error_counter(p_module, p_module->last_driver_error);
@@ -1931,9 +1952,9 @@ static ssize_t vl53l8_interrupt_show(struct device *dev,
 	}
 
 	if (p_module->range.count > 0)
-		return snprintf(buf, PAGE_SIZE, "Pass,%lu\n", p_module->range.count);
+		return snprintf(buf, PAGE_SIZE, "1,%lu\n", p_module->range.count);
 	else
-		return snprintf(buf, PAGE_SIZE, "Fail,%lu\n", p_module->range.count);
+		return snprintf(buf, PAGE_SIZE, "0,%lu\n", p_module->range.count);
 }
 #endif
 
@@ -1942,6 +1963,7 @@ static DEVICE_ATTR(name, 0440, vl53l8_name_show, NULL);
 static DEVICE_ATTR(vendor, 0440, vl53l8_vendor_show, NULL);
 static DEVICE_ATTR(fw_version, 0440, vl53l8_firmware_version_show, NULL);
 static DEVICE_ATTR(enable, 0660, vl53l8_enable_show, vl53l8_enable_store);
+static DEVICE_ATTR(asz_test, 0440, vl53l8_asz_distance_show, NULL);
 static DEVICE_ATTR(test_mode, 0660, vl53l8_test_mode_show, vl53l8_test_mode_store);
 static DEVICE_ATTR(temp, 0440, vl53l8_temp_show, NULL);
 static DEVICE_ATTR(test01, 0440, vl53l8_distance_show, NULL);
@@ -1976,6 +1998,7 @@ static struct device_attribute *sensor_attrs[] = {
 	&dev_attr_vendor,
 	&dev_attr_fw_version,
 	&dev_attr_enable,
+	&dev_attr_asz_test,
 	&dev_attr_temp,
 	&dev_attr_test01,
 	&dev_attr_test02,
@@ -2533,8 +2556,11 @@ static int vl53l8_k_ioctl_handler(struct vl53l8_k_module_t *p_module,
 			return status;
 		}
 		status = set_sampling_rate(p_module, (uint32_t)value);
-		if (status != STATUS_OK)
+		if (status != STATUS_OK) {
+			vl53l8_k_log_error("RR Fail %d", status);
 			return status;
+		} else
+			vl53l8_k_log_info("RR %d", value);
 #else
 		status = vl53l8_ioctl_set_ranging_rate(p_module, p);
 #endif
@@ -2555,8 +2581,9 @@ static int vl53l8_k_ioctl_handler(struct vl53l8_k_module_t *p_module,
 		mutex_unlock(&p_module->mutex);
 		if (status != VL53L5_ERROR_NONE) {
 			status = vl53l5_read_device_error(&p_module->stdev, status);
-			vl53l8_k_log_error("Failed: %d", status);
-		}
+			vl53l8_k_log_error("IT Fail %d", status);
+		} else
+			vl53l8_k_log_info("IT %d", p_module->integration);
 #else
 		status = vl53l8_ioctl_set_integration_time_us(p_module, p);
 #endif

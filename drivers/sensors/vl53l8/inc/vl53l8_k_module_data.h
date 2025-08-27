@@ -175,7 +175,7 @@ struct vl53l8_k_module_t {
 	int last_driver_error;
 #ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
 	struct errdata_t {
-		s16 last_error_code;
+		int last_error_code;
 		u8 last_error_cnt;
 	} errdata[MAX_TABLE];
 #endif

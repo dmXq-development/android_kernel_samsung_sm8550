@@ -963,6 +963,9 @@ int vl53l8_ioctl_init(struct vl53l8_k_module_t *p_module)
 
 out:
 	if (status != VL53L5_ERROR_NONE) {
+#ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
+		vl53l8_last_error_counter(p_module, status);
+#endif
 		status = vl53l5_read_device_error(&p_module->stdev, status);
 		vl53l8_k_log_error("Failed: %d", status);
 	}
@@ -978,6 +981,9 @@ out_powerdown:
 	release_firmware(fw_entry);
 
 	if (status != VL53L5_ERROR_NONE) {
+#ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
+		vl53l8_last_error_counter(p_module, status);
+#endif
 		status = vl53l5_read_device_error(&p_module->stdev, status);
 		vl53l8_k_log_error("Failed: %d", status);
 	}
@@ -1381,9 +1387,12 @@ int vl53l8_ioctl_start(struct vl53l8_k_module_t *p_module, void __user *p)
 	vl53l8_ioctl_set_power_mode(p_module, NULL, VL53L5_POWER_STATE_HP_IDLE);
 
 	status = vl53l8_set_device_parameters(p_module, VL53L8_CFG__B2BWB_8X8_OPTION_3);
-	if (status != STATUS_OK)
+	if (status != STATUS_OK) {
 		vl53l8_k_log_error("set param err");
-
+#ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
+		vl53l8_last_error_counter(p_module, status);
+#endif
+	}
 	status = vl53l8_ioctl_set_integration_time_us(p_module, p_module->integration);
 	if (status != STATUS_OK)
 		vl53l8_k_log_error("set integ time err");
@@ -1461,6 +1470,9 @@ int vl53l8_ioctl_start(struct vl53l8_k_module_t *p_module, void __user *p)
 
 out:
 	if (status != VL53L5_ERROR_NONE) {
+#ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
+		vl53l8_last_error_counter(p_module, status);
+#endif
 		status = vl53l5_read_device_error(&p_module->stdev, status);
 		vl53l8_k_log_error("Failed: %d", status);
 		vl53l8_ioctl_stop(p_module);
@@ -1736,6 +1748,10 @@ int vl53l8_ioctl_stop(struct vl53l8_k_module_t *p_module, void __user *p)
 #endif
 
 	status = vl53l5_stop(&p_module->stdev, &p_module->ranging_flags);
+#ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
+	if (status != VL53L5_ERROR_NONE)
+		vl53l8_last_error_counter(p_module, status);
+#endif
 #ifdef STM_VL53L5_SUPPORT_SEC_CODE
 #ifdef VL53L8_INTERRUPT
 	usleep_range(10000, 10100);
@@ -2177,6 +2193,9 @@ void vl53l8_power_onoff(struct vl53l8_k_module_t *p_module, bool on)
 		p_module->stdev.host_dev.p_fw_buff = NULL;
 		status = vl53l5_init(&p_module->stdev);
 		if (status < 0) {
+#ifdef CONFIG_SENSORS_LAF_FAILURE_DEBUG
+			vl53l8_last_error_counter(p_module, status);
+#endif
 			vl53l8_k_log_error("resume init err");
 			p_module->stdev.last_dev_error = VL53L8_RESUME_INIT_ERROR;
 			return;
