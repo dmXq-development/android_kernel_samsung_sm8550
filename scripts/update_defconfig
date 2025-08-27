@@ -115,7 +115,7 @@ EOM
 else
 	krnl_commit_msg=$(
 		cat <<EOM
-ARM64: configs: xiaomi: update auto-generated defconfig for all devices
+ARM64: configs: samsung: update auto-generated defconfig for all devices
 This update is generated automatically by using the update_defconfig script
 HEAD of the project used to prepare this commit:
 ${krnl_defconfig_url}/tree/${krnl_defconfig_head}
