@@ -325,7 +325,7 @@ enum fft_size {
 #define SEC_LOCAL_AVG_SIZE	            128  //  1024/n  recommended,  no 1024
 
 // average/max thd
-#define FLICKER_AVGMAX_THD		280LL
+#define FLICKER_AVGMAX_THD      65LL
 // sec_ calc_thd
 #define FLICKER_THD_CLEAR       1800LL    /* 1.8 * 1000 */
 #define FLICKER_THD_RATIO       3LL       /* 0.003 * 1000 */
@@ -623,6 +623,7 @@ int32_t stk6d2x_alps_set_config(stk6d2x_data *alps_data, bool en);
 int32_t stk6d2x_init_all_setting(stk6d2x_data *alps_data);
 int32_t stk6d2x_als_get_data(stk6d2x_data *alps_data, bool is_skip);
 void stk6d2x_dump_reg(struct stk6d2x_data *alps_data);
+void stk6d2x_force_stop(stk6d2x_data *alps_data);
 
 extern int sensors_create_symlink(struct kobject *target, const char *name);
 extern void sensors_remove_symlink(struct kobject *target, const char *name);

@@ -1229,6 +1229,18 @@ int32_t stk6d2x_init_all_setting(stk6d2x_data *alps_data)
 	return 0;
 }
 
+void stk6d2x_force_stop(stk6d2x_data *alps_data)
+{
+	ALS_err("Stop ALPS timer\n");
+	STK6D2X_TIMER_STOP(alps_data, &alps_data->alps_timer_info);
+
+	ALS_err("FIFO disable\n");
+	stk6d2x_enable_fifo(alps_data, false);
+	stk_power_ctrl(alps_data, false);
+	if (alps_data->als_info.enable == true)
+		alps_data->als_info.enable = false;
+}
+
 int32_t stk6d2x_alps_set_config(stk6d2x_data *alps_data, bool en)
 {
 	int32_t ret = 0;
@@ -1289,12 +1301,16 @@ int32_t stk6d2x_alps_set_config(stk6d2x_data *alps_data, bool en)
 	}
 
 #ifdef STK_ALS_ENABLE
-	stk6d2x_enable_als(alps_data, en);
+	ret = stk6d2x_enable_als(alps_data, en);
+	if (ret < 0) {
+		stk6d2x_force_stop(alps_data);
+		goto err;
+	}
 #endif
 
 	if (!en &&  !alps_data->als_info.enable)
 	{
-		ALS_err("Stop ALPS timer\n");
+		ALS_dbg("Stop ALPS timer\n");
         STK6D2X_TIMER_STOP(alps_data, &alps_data->alps_timer_info);
 	}
 
@@ -1302,7 +1318,7 @@ int32_t stk6d2x_alps_set_config(stk6d2x_data *alps_data, bool en)
 
 	if (alps_data->als_info.enable == true)
 	{
-		ALS_err("FIFO enable\n");
+		ALS_dbg("FIFO enable\n");
 #ifdef STK_DATA_SUMMATION
 		stk6d2x_als_get_summation_gain(alps_data);
 #endif
@@ -1310,7 +1326,7 @@ int32_t stk6d2x_alps_set_config(stk6d2x_data *alps_data, bool en)
 	}
 	else
 	{
-		ALS_err("FIFO disable\n");
+		ALS_dbg("FIFO disable\n");
 		stk6d2x_enable_fifo(alps_data, false);
 	}
 #endif
