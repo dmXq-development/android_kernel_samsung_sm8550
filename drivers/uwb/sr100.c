@@ -200,6 +200,10 @@ static int sr100_dev_open(struct inode* inode, struct file* filp) {
       container_of(filp->private_data, struct sr100_dev, sr100_device);
 
   filp->private_data = sr100_dev;
+  if (device_can_wakeup(&sr100_dev->spi->dev)) {
+    device_wakeup_enable(&sr100_dev->spi->dev);
+  }
+
   UWB_LOG_INFO("%s : Major No: %d, Minor No: %d\n", __func__, imajor(inode),
                 iminor(inode));
 
@@ -223,7 +227,6 @@ static void sr100_disable_irq(struct sr100_dev* sr100_dev) {
 
   spin_lock_irqsave(&sr100_dev->irq_enabled_lock, flags);
   if((sr100_dev->irq_enabled)){
-    disable_irq_wake(sr100_dev->spi->irq);
     disable_irq_nosync(sr100_dev->spi->irq);
     sr100_dev->irq_received = true;
     sr100_dev->irq_enabled = false;
@@ -249,7 +252,6 @@ static void sr100_enable_irq(struct sr100_dev* sr100_dev) {
   spin_lock_irqsave(&sr100_dev->irq_enabled_lock, flags);
   if(!sr100_dev->irq_enabled){
     enable_irq(sr100_dev->spi->irq);
-    enable_irq_wake(sr100_dev->spi->irq);
     sr100_dev->irq_enabled = true;
     sr100_dev->irq_received = false;
   }
@@ -314,6 +316,12 @@ static long sr100_dev_ioctl(struct file* filp, unsigned int cmd,
   struct sr100_dev* sr100_dev = NULL;
   UWB_LOG_INFO("i\n");
   sr100_dev = filp->private_data;
+  if(sr100_dev == NULL) {
+    ret = -EINVAL;
+    UWB_LOG_ERR("%s sr100_dev is NULL\n",__func__);
+    return ret;
+  }
+
   switch (cmd) {
     case SR100_SET_PWR:
       if (arg == PWR_ENABLE) {
@@ -322,7 +330,7 @@ static long sr100_dev_ioctl(struct file* filp, unsigned int cmd,
           gpio_set_value(sr100_dev->rtc_sync_gpio, 1);
         }
         gpio_set_value(sr100_dev->ce_gpio, 1);
-        msleep(10);
+        usleep_range(10000, 12000);
       } else if (arg == PWR_DISABLE) {
         UWB_LOG_INFO("disable power request\n");
         gpio_set_value(sr100_dev->ce_gpio, 0);
@@ -330,7 +338,7 @@ static long sr100_dev_ioctl(struct file* filp, unsigned int cmd,
           gpio_set_value(sr100_dev->rtc_sync_gpio, 0);
         }
         sr100_disable_irq(sr100_dev);
-        msleep(10);
+        usleep_range(10000, 12000);
       } else if (arg == ABORT_READ_PENDING) {
         UWB_LOG_INFO( "Abort Read Pending\n");
         read_abort_requested = true;
@@ -1228,7 +1236,7 @@ static int sr100_probe(struct spi_device* spi) {
        */
   //irq_flags = IRQF_TRIGGER_RISING;
   irq_flags = IRQ_TYPE_LEVEL_HIGH;
-  sr100_dev->irq_enabled = false;
+  sr100_dev->irq_enabled = true;
   sr100_dev->irq_received = false;
 
   ret = request_irq(sr100_dev->spi->irq, sr100_dev_irq_handler, irq_flags,
@@ -1237,7 +1245,9 @@ static int sr100_probe(struct spi_device* spi) {
     UWB_LOG_ERR("request_irq failed\n");
     goto err_exit3;
   } else {
-    disable_irq_nosync(sr100_dev->spi->irq);
+    sr100_disable_irq(sr100_dev);
+    device_set_wakeup_capable(&sr100_dev->spi->dev, true);
+    device_wakeup_disable(&sr100_dev->spi->dev);
   }
 
   if((int)sr100_dev->rtc_sync_gpio > 0) {
@@ -1307,6 +1317,7 @@ static int sr100_remove(struct spi_device* spi) {
   struct sr100_dev* sr100_dev = sr100_get_data(spi);
   UWB_LOG_INFO("Entry : %s\n", __FUNCTION__);
   if(sr100_dev != NULL) {
+    device_wakeup_disable(&sr100_dev->spi->dev);
     sr100_regulator_onoff(&spi->dev, sr100_dev, false);
     gpio_free(sr100_dev->ce_gpio);
     mutex_destroy(&sr100_dev->sr100_access_lock);
@@ -1328,14 +1339,52 @@ static int sr100_remove(struct spi_device* spi) {
   UWB_LOG_INFO("Exit : %s\n", __FUNCTION__);
   return 0;
 }
+
+/**
+ * sr100_dev_suspend
+ *
+ * Executed before putting the system into a sleep state
+ *
+ */
+int sr100_dev_suspend(struct device *dev)
+{
+    struct sr100_dev *sr100_dev = dev_get_drvdata(dev);
+
+    if (device_may_wakeup(dev))
+        enable_irq_wake(sr100_dev->spi->irq);
+
+    return 0;
+}
+
+/**
+ * sr100_dev_resume
+ *
+ * Executed after waking the system up from a sleep state
+ *
+ */
+int sr100_dev_resume(struct device *dev)
+{
+    struct sr100_dev *sr100_dev = dev_get_drvdata(dev);
+
+    if (device_may_wakeup(dev))
+        disable_irq_wake(sr100_dev->spi->irq);
+
+    return 0;
+}
+
 static struct of_device_id sr100_dt_match[] = {{
                                                 .compatible = "nxp,sr100",
                                                },
                                                {}};
+
+static const struct dev_pm_ops sr100_dev_pm_ops = { SET_SYSTEM_SLEEP_PM_OPS(
+        sr100_dev_suspend, sr100_dev_resume) };
+
 static struct spi_driver sr100_driver = {
     .driver =
         {
          .name = "sr100",
+         .pm = &sr100_dev_pm_ops,
          .bus = &spi_bus_type,
          .owner = THIS_MODULE,
          .of_match_table = sr100_dt_match,
