@@ -38,7 +38,7 @@ static void sec_trusted_bus_put(struct sec_ts_plat_data *pdata)
 	struct sec_trusted_touch *pvm = pdata->pvm;
 	struct device *dev = NULL;
 
-	dev = pdata->bus_master;
+	dev = pdata->bus_master->parent;
 
 	mutex_lock(&pvm->clk_io_ctrl_mutex);
 	if (pvm->core_clk != NULL && pvm->iface_clk != NULL)

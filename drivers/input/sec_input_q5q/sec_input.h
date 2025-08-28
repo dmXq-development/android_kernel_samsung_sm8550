@@ -135,10 +135,12 @@ const struct file_operations ops_name = {				\
 	dev_dbg(dev, SECLOG " " fmt, ## __VA_ARGS__);				\
 	if (mode) {								\
 		if (dev)							\
-			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s",	\
-					dev_driver_string(dev), dev_name(dev));	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s %d:%s",	\
+					dev_driver_string(dev), dev_name(dev),	\
+					current->pid, current->comm);		\
 		else								\
-			snprintf(input_log_buf, sizeof(input_log_buf), "NULL");	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL %d:%s",	\
+					current->pid, current->comm);		\
 		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
 	}									\
 })
@@ -148,10 +150,12 @@ const struct file_operations ops_name = {				\
 	dev_info(dev, SECLOG " " fmt, ## __VA_ARGS__);				\
 	if (mode) {								\
 		if (dev)							\
-			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s",	\
-					dev_driver_string(dev), dev_name(dev));	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s %d:%s",	\
+					dev_driver_string(dev), dev_name(dev),	\
+						current->pid, current->comm);	\
 		else								\
-			snprintf(input_log_buf, sizeof(input_log_buf), "NULL");	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL %d:%s",	\
+					current->pid, current->comm);		\
 		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
 	}									\
 })
@@ -161,10 +165,12 @@ const struct file_operations ops_name = {				\
 	dev_err(dev, SECLOG " " fmt, ## __VA_ARGS__);				\
 	if (mode) {								\
 		if (dev)							\
-			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s",	\
-					dev_driver_string(dev), dev_name(dev));	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s %d:%s",	\
+					dev_driver_string(dev), dev_name(dev),	\
+					current->pid, current->comm);		\
 		else								\
-			snprintf(input_log_buf, sizeof(input_log_buf), "NULL");	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL %d:%s",	\
+					current->pid, current->comm);	\
 		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
 	}									\
 })
@@ -175,10 +181,12 @@ const struct file_operations ops_name = {				\
 	dev_info(dev, SECLOG " " fmt, ## __VA_ARGS__);				\
 	if (mode) {								\
 		if (dev)							\
-			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s",	\
-					dev_driver_string(dev), dev_name(dev));	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s %d:%s",	\
+					dev_driver_string(dev), dev_name(dev),	\
+					current->pid, current->comm);	\
 		else								\
-			snprintf(input_log_buf, sizeof(input_log_buf), "NULL");	\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL %d:%s",	\
+					current->pid, current->comm);		\
 		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
 		sec_debug_tsp_fail_hist(input_log_buf, fmt, ## __VA_ARGS__);	\
 	}									\
@@ -432,9 +440,17 @@ enum proximity_event_type {
 #define SEC_INPUT_DEFAULT_DVDD_NAME	"tsp_io_ldo"
 
 #define SEC_TS_MAX_FW_PATH		64
-#define TSP_EXTERNAL_FW		"tsp.bin"
-#define TSP_EXTERNAL_FW_SIGNED	"tsp_signed.bin"
+#define TSP_EXTERNAL_FW			"tsp.bin"
+#define TSP_EXTERNAL_FW_SIGNED		"tsp_signed.bin"
 #define TSP_SPU_FW_SIGNED		"/TSP/ffu_tsp.bin"
+
+enum fw_version_index {
+	SEC_INPUT_FW_IC_VER = 0,
+	SEC_INPUT_FW_VER_PROJECT_ID,
+	SEC_INPUT_FW_MODULE_VER,
+	SEC_INPUT_FW_VER,
+	SEC_INPUT_FW_INDEX_MAX,
+};
 
 #if IS_ENABLED(CONFIG_SEC_ABC)
 #define SEC_ABC_SEND_EVENT_TYPE "MODULE=tsp@WARN=tsp_int_fault"
@@ -641,6 +657,7 @@ struct sec_ts_coordinate {
 	u8 hover_id_num;
 	u8 noise_status;
 	u8 freq_id;
+	u8 fod_debug;
 };
 
 struct sec_ts_aod_data {
@@ -730,13 +747,9 @@ struct sec_ts_plat_data {
 	struct regulator *dvdd;
 	struct regulator *avdd;
 
-	u8 core_version_of_ic[4];
-	u8 core_version_of_bin[4];
-	u8 config_version_of_ic[4];
-	u8 config_version_of_bin[4];
-	char ic_vendor_name[2];
-	u8 img_version_of_ic[4];
-	u8 img_version_of_bin[4];
+	char ic_vendor_name[3];
+	u8 img_version_of_ic[SEC_INPUT_FW_INDEX_MAX];
+	u8 img_version_of_bin[SEC_INPUT_FW_INDEX_MAX];
 
 	struct pinctrl *pinctrl;
 
@@ -749,6 +762,7 @@ struct sec_ts_plat_data {
 	int (*stui_tsp_enter)(void);
 	int (*stui_tsp_exit)(void);
 	int (*stui_tsp_type)(void);
+	int (*probe)(struct device *dev);
 
 	int (*enable)(struct device *dev);
 	int (*disable)(struct device *dev);
@@ -781,8 +795,8 @@ struct sec_ts_plat_data {
 	u8 wirelesscharger_mode;
 	bool force_wirelesscharger_mode;
 	int wet_mode;
-	int noise_mode;
-	int freq_id;
+	int noise_mode; /* for debug app */
+	int freq_id; /* for debug app */
 	int low_sensitivity_mode;
 
 	bool regulator_boot_on;
@@ -834,6 +848,14 @@ struct sec_ts_plat_data {
 	bool support_always_on;
 	bool prox_lp_scan_enabled;
 
+	int always_lpm;
+
+	bool work_queue_probe_enabled;
+	bool first_booting_disabled;
+	int work_queue_probe_delay;
+	struct work_struct probe_work;
+	struct workqueue_struct *probe_workqueue;
+
 	struct work_struct irq_work;
 	struct workqueue_struct *irq_workqueue;
 	struct completion resume_done;
@@ -853,7 +875,6 @@ struct sec_ts_plat_data {
 
 	u32 print_info_cnt_release;
 	u32 print_info_cnt_open;
-	u16 print_info_currnet_mode;
 };
 
 struct sec_ts_secure_data {
@@ -885,6 +906,7 @@ bool sec_input_cmp_ic_status(struct device *dev, int check_bit);
 bool sec_input_need_ic_off(struct sec_ts_plat_data *pdata);
 bool sec_check_secure_trusted_mode_status(struct sec_ts_plat_data *pdata);
 int sec_input_get_lcd_id(struct device *dev);
+void sec_input_probe_work_remove(struct sec_ts_plat_data *pdata);
 int sec_input_handler_start(struct device *dev);
 void sec_delay(unsigned int ms);
 int sec_input_set_temperature(struct device *dev, int state);

@@ -163,6 +163,41 @@ int sec_input_get_lcd_id(struct device *dev)
 }
 EXPORT_SYMBOL(sec_input_get_lcd_id);
 
+void sec_input_probe_work_remove(struct sec_ts_plat_data *pdata)
+{
+	if (pdata == NULL)
+		return;
+
+	if (!pdata->work_queue_probe_enabled) {
+		input_err(true, pdata->dev, "%s: work_queue_probe_enabled is false\n", __func__);
+		return;
+	}
+
+	cancel_work_sync(&pdata->probe_work);
+	flush_workqueue(pdata->probe_workqueue);
+	destroy_workqueue(pdata->probe_workqueue);
+}
+EXPORT_SYMBOL(sec_input_probe_work_remove);
+
+static void sec_input_probe_work(struct work_struct *work)
+{
+	struct sec_ts_plat_data *pdata = container_of(work, struct sec_ts_plat_data, probe_work);
+	int ret = 0;
+
+	if (pdata->probe == NULL) {
+		input_err(true, pdata->dev, "%s: probe function is null\n", __func__);
+		return;
+	}
+
+	sec_delay(pdata->work_queue_probe_delay);
+
+	ret = pdata->probe(pdata->dev);
+	if (pdata->first_booting_disabled && ret == 0) {
+		input_info(true, pdata->dev, "%s: first_booting_disabled.\n", __func__);
+		pdata->disable(pdata->dev);
+	}
+}
+
 static void sec_input_handler_wait_resume_work(struct work_struct *work)
 {
 	struct sec_ts_plat_data *pdata = container_of(work, struct sec_ts_plat_data, irq_work);
@@ -247,6 +282,8 @@ static void location_detect(struct sec_ts_plat_data *pdata, int t_id)
 
 void sec_delay(unsigned int ms)
 {
+	if (!ms)
+		return;
 	if (ms < 20)
 		usleep_range(ms * 1000, ms * 1000);
 	else
@@ -366,7 +403,7 @@ int sec_input_store_grip_data(struct device *dev, int *cmd_param)
 		if (cmd_param[1] == 0) {
 			pdata->grip_data.edgehandler_direction = 0;
 			input_info(true, dev, "%s: [edge handler] clear\n", __func__);
-		} else if (cmd_param[1] < 3) {
+		} else if (cmd_param[1] < 5) {
 			pdata->grip_data.edgehandler_direction = cmd_param[1];
 			pdata->grip_data.edgehandler_start_y = cmd_param[2];
 			pdata->grip_data.edgehandler_end_y = cmd_param[3];
@@ -682,8 +719,8 @@ void sec_input_print_info(struct device *dev, struct sec_tclm_data *tdata)
 				pdata->ic_vendor_name[0], pdata->ic_vendor_name[1], pdata->img_version_of_ic[0], pdata->img_version_of_ic[1]);
 
 	input_info(true, dev,
-			"mode:%04X tc:%d noise:%d/%d ext_n:%d wet:%d wc:%d(f:%d) lp:%x fn:%04X/%04X irqd:%d ED:%d PK:%d LS:%d// v:%s%02X%02X %s chk:%d // tmp:%d // #%d %d\n",
-			pdata->print_info_currnet_mode, pdata->touch_count,
+			"tc:%d noise:%d/%d ext_n:%d wet:%d wc:%d(f:%d) lp:%x fn:%04X/%04X irqd:%d ED:%d PK:%d LS:%d// v:%s%02X%02X %s chk:%d // tmp:%d // #%d %d\n",
+			pdata->touch_count,
 			atomic_read(&pdata->touch_noise_status), atomic_read(&pdata->touch_pre_noise_status),
 			pdata->external_noise_mode, pdata->wet_mode,
 			pdata->wirelesscharger_mode, pdata->force_wirelesscharger_mode,
@@ -841,8 +878,8 @@ static void sec_input_coord_log(struct device *dev, u8 t_id, int action)
 	if (action == SEC_TS_COORDINATE_ACTION_PRESS) {
 #if !IS_ENABLED(CONFIG_SAMSUNG_PRODUCT_SHIP)
 		input_info(true, dev,
-				"[P] tID:%d.%d x:%d y:%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d\n",
-				t_id, (pdata->input_dev->mt->trkid - 1) & TRKID_MAX,
+				"[P] tID:%d.%d x:%d y:%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d fod:%x\n",
+				t_id, input_mt_get_value(&pdata->input_dev->mt->slots[t_id], ABS_MT_TRACKING_ID),
 				pdata->coord[t_id].x, pdata->coord[t_id].y, pdata->coord[t_id].z,
 				pdata->coord[t_id].major, pdata->coord[t_id].minor,
 				pdata->location, pdata->touch_count,
@@ -850,47 +887,48 @@ static void sec_input_coord_log(struct device *dev, u8 t_id, int action)
 				pdata->coord[t_id].noise_status, atomic_read(&pdata->touch_noise_status),
 				atomic_read(&pdata->touch_pre_noise_status), pdata->coord[t_id].noise_level,
 				pdata->coord[t_id].max_strength, pdata->coord[t_id].hover_id_num,
-				pdata->coord[t_id].freq_id);
+				pdata->coord[t_id].freq_id, pdata->coord[t_id].fod_debug);
 #else
 		input_info(true, dev,
-				"[P] tID:%d.%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d\n",
-				t_id, (pdata->input_dev->mt->trkid - 1) & TRKID_MAX,
+				"[P] tID:%d.%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d fod:%x\n",
+				t_id, input_mt_get_value(&pdata->input_dev->mt->slots[t_id], ABS_MT_TRACKING_ID),
 				pdata->coord[t_id].z, pdata->coord[t_id].major,
 				pdata->coord[t_id].minor, pdata->location, pdata->touch_count,
 				pdata->coord[t_id].ttype,
 				pdata->coord[t_id].noise_status, atomic_read(&pdata->touch_noise_status),
 				atomic_read(&pdata->touch_pre_noise_status), pdata->coord[t_id].noise_level,
 				pdata->coord[t_id].max_strength, pdata->coord[t_id].hover_id_num,
-				pdata->coord[t_id].freq_id);
+				pdata->coord[t_id].freq_id, pdata->coord[t_id].fod_debug);
 #endif
 
 	} else if (action == SEC_TS_COORDINATE_ACTION_MOVE) {
 #if !IS_ENABLED(CONFIG_SAMSUNG_PRODUCT_SHIP)
 		input_info(true, dev,
-				"[M] tID:%d.%d x:%d y:%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d\n",
-				t_id, (pdata->input_dev->mt->trkid - 1) & TRKID_MAX,
+				"[M] tID:%d.%d x:%d y:%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d fod:%x\n",
+				t_id, input_mt_get_value(&pdata->input_dev->mt->slots[t_id], ABS_MT_TRACKING_ID),
 				pdata->coord[t_id].x, pdata->coord[t_id].y, pdata->coord[t_id].z,
 				pdata->coord[t_id].major, pdata->coord[t_id].minor,
 				pdata->location, pdata->touch_count,
 				pdata->coord[t_id].ttype, pdata->coord[t_id].noise_status,
 				atomic_read(&pdata->touch_noise_status), atomic_read(&pdata->touch_pre_noise_status),
 				pdata->coord[t_id].noise_level, pdata->coord[t_id].max_strength,
-				pdata->coord[t_id].hover_id_num, pdata->coord[t_id].freq_id);
+				pdata->coord[t_id].hover_id_num, pdata->coord[t_id].freq_id, pdata->coord[t_id].fod_debug);
 #else
 		input_info(true, dev,
-				"[M] tID:%d.%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d\n",
-				t_id, (pdata->input_dev->mt->trkid - 1) & TRKID_MAX, pdata->coord[t_id].z,
+				"[M] tID:%d.%d z:%d major:%d minor:%d loc:%s tc:%d type:%X noise:(%x,%d%d), nlvl:%d, maxS:%d, hid:%d, fid:%d fod:%x\n",
+				t_id, input_mt_get_value(&pdata->input_dev->mt->slots[t_id], ABS_MT_TRACKING_ID),
+				pdata->coord[t_id].z,
 				pdata->coord[t_id].major, pdata->coord[t_id].minor,
 				pdata->location, pdata->touch_count,
 				pdata->coord[t_id].ttype, pdata->coord[t_id].noise_status,
 				atomic_read(&pdata->touch_noise_status), atomic_read(&pdata->touch_pre_noise_status),
 				pdata->coord[t_id].noise_level, pdata->coord[t_id].max_strength,
-				pdata->coord[t_id].hover_id_num, pdata->coord[t_id].freq_id);
+				pdata->coord[t_id].hover_id_num, pdata->coord[t_id].freq_id, pdata->coord[t_id].fod_debug);
 #endif
 	} else if (action == SEC_TS_COORDINATE_ACTION_RELEASE || action == SEC_TS_COORDINATE_ACTION_FORCE_RELEASE) {
 #if !IS_ENABLED(CONFIG_SAMSUNG_PRODUCT_SHIP)
 		input_info(true, dev,
-				"[R%s] tID:%d loc:%s dd:%d,%d mc:%d tc:%d lx:%d ly:%d p:%d noise:(%x,%d%d) nlvl:%d, maxS:%d, hid:%d, fid:%d\n",
+				"[R%s] tID:%d loc:%s dd:%d,%d mc:%d tc:%d lx:%d ly:%d p:%d noise:(%x,%d%d) nlvl:%d, maxS:%d, hid:%d, fid:%d fod:%x\n",
 				action == SEC_TS_COORDINATE_ACTION_FORCE_RELEASE ? "A" : "",
 				t_id, pdata->location,
 				pdata->coord[t_id].x - pdata->coord[t_id].p_x,
@@ -901,10 +939,10 @@ static void sec_input_coord_log(struct device *dev, u8 t_id, int action)
 				pdata->coord[t_id].noise_status, atomic_read(&pdata->touch_noise_status),
 				atomic_read(&pdata->touch_pre_noise_status), pdata->coord[t_id].noise_level,
 				pdata->coord[t_id].max_strength, pdata->coord[t_id].hover_id_num,
-				pdata->coord[t_id].freq_id);
+				pdata->coord[t_id].freq_id, pdata->coord[t_id].fod_debug);
 #else
 		input_info(true, dev,
-				"[R%s] tID:%d loc:%s dd:%d,%d mc:%d tc:%d p:%d noise:(%x,%d%d) nlvl:%d, maxS:%d, hid:%d, fid:%d\n",
+				"[R%s] tID:%d loc:%s dd:%d,%d mc:%d tc:%d p:%d noise:(%x,%d%d) nlvl:%d, maxS:%d, hid:%d, fid:%d fod:%x\n",
 				action == SEC_TS_COORDINATE_ACTION_FORCE_RELEASE ? "A" : "",
 				t_id, pdata->location,
 				pdata->coord[t_id].x - pdata->coord[t_id].p_x,
@@ -914,7 +952,7 @@ static void sec_input_coord_log(struct device *dev, u8 t_id, int action)
 				pdata->coord[t_id].noise_status, atomic_read(&pdata->touch_noise_status),
 				atomic_read(&pdata->touch_pre_noise_status), pdata->coord[t_id].noise_level,
 				pdata->coord[t_id].max_strength, pdata->coord[t_id].hover_id_num,
-				pdata->coord[t_id].freq_id);
+				pdata->coord[t_id].freq_id, pdata->coord[t_id].fod_debug);
 #endif
 	}
 }
@@ -1643,6 +1681,26 @@ int sec_input_parse_dt(struct device *dev)
 		input_err(true, dev, "%s: failed to create irq_workqueue, err: %ld\n",
 				__func__, PTR_ERR(pdata->irq_workqueue));
 	}
+
+	pdata->work_queue_probe_enabled = of_property_read_bool(np, "work_queue_probe_enabled");
+	if (pdata->work_queue_probe_enabled) {
+		pdata->probe_workqueue = create_singlethread_workqueue("sec_tsp_probe_wq");
+		if (!IS_ERR_OR_NULL(pdata->probe_workqueue)) {
+			INIT_WORK(&pdata->probe_work, sec_input_probe_work);
+			input_info(true, dev, "%s: set sec_input_probe_work\n", __func__);
+		} else {
+			pdata->work_queue_probe_enabled = false;
+			input_err(true, dev, "%s: failed to create probe_work, err: %ld enabled:%s\n",
+					__func__, PTR_ERR(pdata->probe_workqueue),
+					pdata->work_queue_probe_enabled ? "ON" : "OFF");
+		}
+	}
+
+	if (of_property_read_u32(np, "sec,probe_queue_delay", &pdata->work_queue_probe_delay)) {
+		input_dbg(false, dev, "%s: Failed to get work_queue_probe_delay property\n", __func__);
+		pdata->work_queue_probe_delay = 0;
+	}
+
 
 	sec_input_support_feature_parse_dt(dev);
 

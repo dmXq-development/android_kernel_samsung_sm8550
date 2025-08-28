@@ -4690,6 +4690,13 @@ static int set_grip_data_save(void *device_data)
 	struct sec_cmd_data *sec = (struct sec_cmd_data *)device_data;
 	int mode = G_NONE;
 
+	if ((sec->cmd_param[0] == 0) && (sec->cmd_param[1] >= 3)) {
+		input_info(true, sec->dev, "%s: edgehandler direction %d is not supported\n",
+				__func__, sec->cmd_param[1]);
+		sec->cmd_state = SEC_CMD_STATUS_FAIL;
+		return SEC_ERROR;
+	}
+
 	mode = sec_input_store_grip_data(sec->dev, sec->cmd_param);
 	if (mode < 0) {
 		sec->cmd_state = SEC_CMD_STATUS_FAIL;
