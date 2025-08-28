@@ -769,6 +769,7 @@ static int cs40l26_handle_mbox_buffer(struct cs40l26_private *cs40l26)
 {
 	struct device *dev = cs40l26->dev;
 	u32 val = 0;
+	int ret;
 
 	while (!cs40l26_mbox_buffer_read(cs40l26, &val)) {
 		if ((val & CS40L26_DSP_MBOX_CMD_INDEX_MASK)
@@ -2295,9 +2296,8 @@ static void cs40l26_vibe_stop_worker(struct work_struct *work)
 		dev_info(cs40l26->dev, "Skipping delay\n");
 	}
 
-	if (cs40l26->vibe_state != CS40L26_VIBE_STATE_HAPTIC) {
-		dev_warn(cs40l26->dev, "Attempted stop when vibe_state = %d\n",
-				cs40l26->vibe_state);
+	if (skip_delay) {
+		dev_dbg(cs40l26->dev, "Stop command skipped\n");
 		goto mutex_exit;
 	}
 
@@ -2306,10 +2306,8 @@ static void cs40l26_vibe_stop_worker(struct work_struct *work)
 #endif
 	ret = cs40l26_ack_write(cs40l26, CS40L26_DSP_VIRTUAL1_MBOX_1,
 				CS40L26_STOP_PLAYBACK, CS40L26_DSP_MBOX_RESET);
-	if (ret) {
+	if (ret)
 		dev_err(cs40l26->dev, "Failed to stop playback\n");
-		goto mutex_exit;
-	}
 
 mutex_exit:
 	mutex_unlock(&cs40l26->lock);
