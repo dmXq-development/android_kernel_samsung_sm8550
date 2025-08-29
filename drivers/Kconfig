@@ -275,13 +275,13 @@ source "drivers/usb/typec/manager/Kconfig"
 
 source "drivers/input/sec_input/Kconfig"
 
-source "drivers/input/sec_input_q5q/Kconfig"
+source "drivers/input/sec_input_foldable/Kconfig"
 
-source "drivers/input/sec_input_q5q/stm_fst3ca60y_i2c/Kconfig"
+source "drivers/input/sec_input_foldable/stm_fst3ca60y_i2c/Kconfig"
 
-source "drivers/input/sec_input_q5q/stm_fst2ba61y_i2c/Kconfig"
+source "drivers/input/sec_input_foldable/stm_fst2ba61y_i2c/Kconfig"
 
-source "drivers/input/sec_input_q5q/stm_fst2ca78y_spi/Kconfig"
+source "drivers/input/sec_input_foldable/stm_fst2ca78y_spi/Kconfig"
 
 source "drivers/fingerprint/Kconfig"
 

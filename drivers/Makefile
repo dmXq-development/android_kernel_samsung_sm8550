@@ -207,10 +207,10 @@ obj-y				+= vibrator/common/inputff/
 obj-y				+= muic/common/
 obj-y				+= usb/typec/manager/
 ifeq ($(CONFIG_SEC_PLATFORM_Q5Q), y)
-obj-y				+= input/sec_input_q5q/
-obj-y				+= input/sec_input_q5q/stm_fst3ca60y_i2c/
-obj-y				+= input/sec_input_q5q/stm_fst2ba61y_i2c/
-obj-y				+= input/sec_input_q5q/stm_fst2ca78y_spi/
+obj-y				+= input/sec_input_foldable/
+obj-y				+= input/sec_input_foldable/stm_fst3ca60y_i2c/
+obj-y				+= input/sec_input_foldable/stm_fst2ba61y_i2c/
+obj-y				+= input/sec_input_foldable/stm_fst2ca78y_spi/
 else
 obj-y				+= input/sec_input/
 endif
