@@ -34,6 +34,7 @@ declare -r soc="kalama"
 
 declare -A devices=(
 	[dm1q]=1 [dm2q]=1 [dm2q_kor]=1 [dm3q]=1 [q5q]=1
+	[b5q]=1
 )
 
 print_environment() {
