@@ -297,6 +297,8 @@ source "drivers/battery/charger/pca9468_charger/Kconfig"
 
 source "drivers/battery/charger/pca9481_charger/Kconfig"
 
+source "drivers/battery/charger/pca9482_charger/Kconfig"
+
 source "drivers/vibrator/cs/cs40l26_mainline/Kconfig"
 
 source "drivers/vibrator/cs/cs40l26/Kconfig"
