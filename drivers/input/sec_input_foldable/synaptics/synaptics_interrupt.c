@@ -866,12 +866,15 @@ int synaptics_ts_get_event(struct synaptics_ts_data *ts,
 
 	if (ts->header) {
 		if (ts->header->marker == SYNAPTICS_TS_V1_MESSAGE_MARKER && !ts->header->code && !ts->header->length[0] && !ts->header->length[1]) {
+#if IS_ENABLED(CONFIG_SEC_ABC) && IS_ENABLED(CONFIG_SEC_FACTORY)
 			ts->irq_empty_count++;
 			if (ts->irq_empty_count >= 100) {
 				ts->irq_empty_count = 0;
 				input_info(true, ts->dev, "empty message\n");
 				sec_abc_send_event(GET_INT_ABC_TYPE(ts->multi_dev));
 			}
+#endif
+			return SEC_ERROR;
 		}
 	}
 
