@@ -237,6 +237,7 @@ obj-y				+= vibrator/maxim/
 obj-y				+= input/misc/hall/akm/
 obj-y				+= input/misc/hall/
 obj-y				+= mstdrv/
+obj-y				+= redriver/ps5169/
 obj-y				+= optics/
 obj-y				+= battery/fuelgauge/max77705_fuelgauge/
 obj-y				+= mfd/maxim/

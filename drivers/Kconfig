@@ -313,6 +313,8 @@ source "drivers/input/misc/hall/Kconfig"
 
 source "drivers/mstdrv/Kconfig"
 
+source "drivers/redriver/ps5169/Kconfig"
+
 source "drivers/optics/Kconfig"
 
 source "drivers/battery/fuelgauge/max77705_fuelgauge/Kconfig"
