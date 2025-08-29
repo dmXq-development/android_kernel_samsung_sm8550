@@ -194,6 +194,7 @@ obj-$(CONFIG_ADSP_FACTORY)	+= adsp_factory/
 obj-y				+= samsung/
 obj-y				+= switch/
 obj-y				+= regulator/pmic_class/
+obj-y				+= vibrator/common/
 obj-y				+= vibrator/common/vib_info/
 obj-y				+= misc/drb/
 obj-y				+= uwb/uwb_logger/

@@ -249,6 +249,8 @@ source "drivers/adsp_factory/Kconfig"
 
 source "drivers/regulator/pmic_class/Kconfig"
 
+source "drivers/vibrator/common/Kconfig"
+
 source "drivers/vibrator/common/vib_info/Kconfig"
 
 source "drivers/misc/drb/Kconfig"
