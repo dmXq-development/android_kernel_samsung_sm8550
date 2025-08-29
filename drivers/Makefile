@@ -202,6 +202,7 @@ obj-y				+= sec_panel_notifier_v2/
 obj-y				+= usb/common/vbus_notifier/
 obj-y				+= battery/charger/max77705_charger/
 obj-y				+= battery/limiter/max17333_limiter/
+obj-y				+= battery/limiter/s2asl01_limiter/
 obj-y				+= battery/core/
 obj-y				+= vibrator/common/inputff/
 obj-y				+= muic/common/

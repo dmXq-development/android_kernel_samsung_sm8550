@@ -265,6 +265,8 @@ source "drivers/battery/charger/max77705_charger/Kconfig"
 
 source "drivers/battery/limiter/max17333_limiter/Kconfig"
 
+source "drivers/battery/limiter/s2asl01_limiter/Kconfig"
+
 source "drivers/battery/core/Kconfig"
 
 source "drivers/vibrator/common/inputff/Kconfig"
