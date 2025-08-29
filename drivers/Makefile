@@ -211,6 +211,9 @@ obj-y				+= input/sec_input_foldable/
 obj-y				+= input/sec_input_foldable/stm_fst3ca60y_i2c/
 obj-y				+= input/sec_input_foldable/stm_fst2ba61y_i2c/
 obj-y				+= input/sec_input_foldable/stm_fst2ca78y_spi/
+else ifeq ($(CONFIG_SEC_PLATFORM_B5Q), y)
+obj-y				+= input/sec_input_foldable/
+obj-y				+= input/sec_input_foldable/synaptics/
 else
 obj-y				+= input/sec_input/
 endif
