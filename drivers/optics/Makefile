@@ -9,7 +9,7 @@ flicker_sensor-$(CONFIG_FLICKER_PWM_CALIBRATION) += tsl2585_cal.o
 
 obj-$(CONFIG_SENSORS_TSL2585) += flicker_sensor.o
 
-ifeq ($(CONFIG_SEC_PLATFORM_Q5Q), y)
+ifeq ($(filter y,$(CONFIG_SEC_PLATFORM_Q5Q) $(CONFIG_SEC_PLATFORM_B5Q)),y)
 stk-src += stk6d2x.c stk6d2x_fifo.c stk6d2x_sec.c common_i2c.c common_timer.c common_gpio_sec.c
 
 flicker_sensor-y := $(stk-src:.c=.o)
@@ -17,3 +17,4 @@ flicker_sensor-$(CONFIG_FLICKER_PWM_CALIBRATION) += stk6d2x_cal.o
 
 obj-$(CONFIG_SENSORS_STK6D2X) += flicker_sensor.o
 endif
+
