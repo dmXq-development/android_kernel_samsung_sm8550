@@ -305,6 +305,8 @@ source "drivers/vibrator/cs/cs40l26_mainline/Kconfig"
 
 source "drivers/vibrator/cs/cs40l26/Kconfig"
 
+source "drivers/vibrator/maxim/Kconfig"
+
 source "drivers/input/misc/hall/akm/Kconfig"
 
 source "drivers/input/misc/hall/Kconfig"
