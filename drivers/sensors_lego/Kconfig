@@ -251,3 +251,65 @@ config SENSORS_SUPPORT_LOGIC_PARAMETER
         bool "support grip logic fw"
         help
           Say Y here, if the model support logic firmware.
+
+config SENSORS_SX9360
+	depends on I2C
+	tristate "SX9360 driver"
+	default n
+	help
+	  Say Y here if you use sx9360.
+	  This option enables grip sensors using
+	  SemTech sx9360 device driver.
+	  Say N here if you do not use sx9360.
+
+config SENSORS_SX9360_SUB
+	depends on I2C
+	tristate "SX9360 sub driver"
+	default n
+	help
+	  Say Y here if you use sx9360 sub.
+	  This option enables grip sensors using
+	  SemTech sx9360 sub device driver.
+	  Say N here if you do not use sx9360 sub.
+
+config SENSORS_SX9364
+	depends on I2C
+	tristate "SX9364 driver"
+	default n
+	help
+	  Say Y here if you use sx9364.
+	  This option enables grip sensors using
+	  SemTech sx9360 device driver.
+	  Say N here if you do not use sx9364.
+
+config SENSORS_SX9364_SUB
+	depends on I2C
+	tristate "SX9364_SUB driver"
+	default n
+	help
+	  Say Y here if you use sx9364_sub.
+	  This option enables grip sensors using
+	  SemTech sx9364_sub device driver.
+	  Say N here if you do not use sx9364_sub.
+
+
+config SENSORS_IRQ_PROCESSING_DELAY
+	depends on I2C
+	tristate "Grip IRQ processing delay"
+	default n
+	help
+	  Say Y here, Make irq thread is called after resume.
+
+config SENSORS_CHECK_PMIC_DEPENDENCY
+	bool "SX9360 check pmic dependency"
+	default n
+	help
+	  Enable check pmic dependency
+	  This option enables check pmic dependency.
+
+config SENSORS_FOLDABLE_SMD
+	bool "SX9385 foldable smd"
+	default n
+	help
+	  Enable foldable smd mode
+	  This option enables foldable smd mode.
