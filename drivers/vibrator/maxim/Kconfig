@@ -2,6 +2,7 @@ config MAX77705_VIBRATOR
 	tristate "Maxim MAX77705 vibrator"
 	default n
 	depends on MFD_MAX77705
+	depends on SEC_VIBRATOR
 	help
 	  If you say yes here you will get support for the
 	  motor of Maxim MAX77705 PMIC.
