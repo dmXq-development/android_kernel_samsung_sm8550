@@ -85,7 +85,7 @@ static int ps5169_i2c_check(void)
 	return value;
 }
 
-static int ps5169_set_work_mode()
+static int ps5169_set_work_mode(void)
 {
 
 	if (!redrv_data) {
